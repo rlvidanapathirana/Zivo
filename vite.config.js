@@ -4,44 +4,42 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: process.env.GITHUB_ACTIONS ? '/ZenFlow/' : '/',
+  base: '/',
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon.ico', 'icons/*.png'],
       devOptions: { enabled: true },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        // admin.html is not a PWA page — exclude it from SW navigation handling
-        navigateFallbackDenylist: [/\/admin\.html/],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/opensheet\.elk\.sh/,
-            handler: 'NetworkFirst',
+            urlPattern: /^https:\/\/i\.ytimg\.com/,
+            handler: 'CacheFirst',
             options: {
-              cacheName: 'sheets-cache',
-              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 },
+              cacheName: 'yt-thumbnails',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
             },
           },
         ],
       },
       manifest: {
-        name: 'ZenFlow — Hypnotherapy Audio',
-        short_name: 'ZenFlow',
-        description: 'Ad-free hypnotherapy audio sessions for deep trance, sleep, and healing.',
-        theme_color: '#0f172a',
-        background_color: '#030712',
+        name: 'Zivo — Ad-Free YouTube Video Platform',
+        short_name: 'Zivo',
+        description: 'Ad-free YouTube video streaming app protected by Brave Shield & SponsorBlock.',
+        theme_color: '#090d16',
+        background_color: '#090d16',
         display: 'standalone',
-        orientation: 'portrait',
-        start_url: process.env.GITHUB_ACTIONS ? '/ZenFlow/' : '/',
-        scope: process.env.GITHUB_ACTIONS ? '/ZenFlow/' : '/',
+        orientation: 'any',
+        start_url: '/',
+        scope: '/',
         icons: [
           { src: 'icons/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
-        categories: ['health', 'lifestyle', 'music'],
+        categories: ['entertainment', 'video', 'utilities'],
       },
     }),
   ],

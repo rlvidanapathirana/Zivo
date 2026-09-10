@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-caf3a6a6'], (function (workbox) { 'use strict';
+define(['./workbox-25613826'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -78,24 +78,17 @@ define(['./workbox-caf3a6a6'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.68btgpvirk4"
+    "revision": "0.rfaaf4p3pds"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/]
   }));
-  workbox.registerRoute(/^https:\/\/docs\.google\.com\/uc/, new workbox.CacheFirst({
-    "cacheName": "audio-cache",
+  workbox.registerRoute(/^https:\/\/i\.ytimg\.com/, new workbox.CacheFirst({
+    "cacheName": "yt-thumbnails",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 30,
-      maxAgeSeconds: 2592000
-    })]
-  }), 'GET');
-  workbox.registerRoute(/^https:\/\/opensheet\.elk\.sh/, new workbox.NetworkFirst({
-    "cacheName": "sheets-cache",
-    plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 5,
-      maxAgeSeconds: 3600
+      maxEntries: 100,
+      maxAgeSeconds: 604800
     })]
   }), 'GET');
 
