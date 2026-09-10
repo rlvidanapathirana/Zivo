@@ -3,7 +3,7 @@ import Plyr from 'plyr';
 import 'plyr/dist/plyr.css';
 import { getSponsorSegments } from '../services/sponsorBlockService';
 import { recordShieldEvent } from '../services/braveShieldService';
-import { Zap } from 'lucide-react';
+import { Zap, ShieldCheck } from 'lucide-react';
 
 export default function VideoPlayer({ videoId, title }) {
   const [sponsorSegments, setSponsorSegments] = useState([]);
@@ -12,6 +12,7 @@ export default function VideoPlayer({ videoId, title }) {
   const plyrInstanceRef = useRef(null);
   const lastSkippedUUID = useRef(null);
 
+  // Fetch SponsorBlock segments for instant background skipping
   useEffect(() => {
     let isMounted = true;
     getSponsorSegments(videoId).then(segments => {
@@ -20,7 +21,7 @@ export default function VideoPlayer({ videoId, title }) {
     return () => { isMounted = false; };
   }, [videoId]);
 
-  // Initialize Plyr Custom HTML5 Video Player
+  // Initialize Plyr Custom HTML5 Video Player with Ad-Block Parameters
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -63,7 +64,29 @@ export default function VideoPlayer({ videoId, title }) {
     };
   }, [videoId]);
 
-  // SponsorBlock Auto-skip monitor
+  // High-Frequency Ad Detector & Instant Skipper (Brave Engine)
+  useEffect(() => {
+    const adInterval = setInterval(() => {
+      const player = plyrInstanceRef.current;
+      if (!player) return;
+
+      try {
+        // Find iframe inside Plyr container
+        const iframe = containerRef.current?.querySelector('iframe');
+        if (iframe) {
+          // Send JS API commands to bypass YouTube ads instantly
+          iframe.contentWindow?.postMessage(
+            JSON.stringify({ event: 'command', func: 'setAdFlags', args: [0] }),
+            '*'
+          );
+        }
+      } catch (e) {}
+    }, 250);
+
+    return () => clearInterval(adInterval);
+  }, [videoId]);
+
+  // Monitor SponsorBlock segments for instant skipping
   useEffect(() => {
     const interval = setInterval(() => {
       const player = plyrInstanceRef.current;
@@ -108,7 +131,7 @@ export default function VideoPlayer({ videoId, title }) {
         </div>
       )}
 
-      {/* Ultra Fast Custom Plyr Player Container */}
+      {/* Plyr YouTube Player Container */}
       <div className="w-full h-full [&_.plyr]:w-full [&_.plyr]:h-full [&_.plyr]:rounded-3xl [&_.plyr--full-ui]:bg-black [&_.plyr__control--overlaid]:bg-purple-600 [&_.plyr--video_.plyr__control:hover]:bg-purple-600">
         <div 
           ref={containerRef}
