@@ -3,8 +3,11 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const isGithubActions = process.env.GITHUB_ACTIONS || false;
+const basePath = isGithubActions ? '/Zivo/' : './';
+
 export default defineConfig({
-  base: '/',
+  base: basePath,
   plugins: [
     react(),
     tailwindcss(),
@@ -26,15 +29,15 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'Zivo — Ad-Free YouTube Video Platform',
+        name: 'Zivo — Ad-Free Video Platform',
         short_name: 'Zivo',
-        description: 'Ad-free YouTube video streaming app protected by Brave Shield & SponsorBlock.',
-        theme_color: '#090d16',
-        background_color: '#090d16',
+        description: 'Ad-free video streaming app protected by SponsorBlock.',
+        theme_color: '#0b0717',
+        background_color: '#0b0717',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/',
-        scope: '/',
+        start_url: basePath,
+        scope: basePath,
         icons: [
           { src: 'icons/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
