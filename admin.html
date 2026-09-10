@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ZenFlow Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ─── TOKENS ─────────────────────────────────────────────── */
+:root{--ease:cubic-bezier(.16,1,.3,1);--ease-s:cubic-bezier(.4,0,.2,1)}
+[data-theme=dark]{
+  --bg:#030712;--surface:#0f172a;--s2:#1e293b;--s3:#334155;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --text:#f1f5f9;--t2:#94a3b8;--t3:#475569;
+  --accent:#6366f1;--ah:#818cf8;--adim:rgba(99,102,241,.15);--aglow:rgba(99,102,241,.4);
+  --ok:#10b981;--warn:#f59e0b;--err:#ef4444;--player:rgba(9,13,30,.92);
+}
+[data-theme=light]{
+  --bg:#f0f4ff;--surface:#fff;--s2:#f1f5f9;--s3:#e2e8f0;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.13);
+  --text:#0f172a;--t2:#475569;--t3:#94a3b8;
+  --accent:#6366f1;--ah:#4f46e5;--adim:rgba(99,102,241,.1);--aglow:rgba(99,102,241,.25);
+  --ok:#059669;--warn:#d97706;--err:#dc2626;--player:rgba(240,244,255,.92);
+}
+/* ─── RESET ──────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100dvh;-webkit-font-smoothing:antialiased;transition:background .35s,color .25s}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:99px}
+::selection{background:rgba(99,102,241,.3);color:#fff}
+/* ─── LAYOUT ─────────────────────────────────────────────── */
+.layout{display:flex;min-height:100dvh}
+/* Sidebar */
+.sidebar{width:252px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;inset-y:0 left:0;z-index:100;
+  transition:transform .3s var(--ease)}
+.logo-row{padding:20px 18px 16px;display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border)}
+.logo-icon{width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,#6366f1,#a78bfa);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  box-shadow:0 0 16px rgba(99,102,241,.4);flex-shrink:0}
+.logo-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;line-height:1}
+.logo-sub{font-size:10px;color:var(--t3);margin-top:2px}
+.nav{flex:1;padding:10px 8px;overflow-y:auto}
+.nav-label{font-size:10px;font-weight:600;color:var(--t3);
+  text-transform:uppercase;letter-spacing:.1em;padding:8px 10px 4px}
+.nav-btn{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:10px;
+  color:var(--t2);font-size:13px;font-weight:500;width:100%;border:none;background:none;
+  transition:all .15s;cursor:pointer;margin-bottom:1px;text-align:left}
+.nav-btn:hover{background:var(--s2);color:var(--text)}
+.nav-btn.on{background:var(--adim);color:var(--accent);font-weight:600}
+.nav-btn svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-btn.on svg{opacity:1}
+.nbadge{margin-left:auto;background:var(--accent);color:#fff;
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px}
+.sidebar-foot{padding:10px 8px;border-top:1px solid var(--border)}
+.user-row{display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border-radius:10px;background:var(--s2)}
+.uavatar{width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,#6366f1,#a78bfa);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.uname{font-size:12px;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.urole{font-size:10px;color:var(--t3)}
+/* Main */
+.main{margin-left:252px;flex:1;display:flex;flex-direction:column;min-height:100dvh}
+.topbar{position:sticky;top:0;z-index:50;height:58px;
+  display:flex;align-items:center;padding:0 24px;gap:10px;
+  background:var(--player);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.topbar-title{flex:1;font-size:14px;font-weight:600}
+.ibtn{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);
+  background:var(--surface);color:var(--t2);display:flex;align-items:center;
+  justify-content:center;transition:all .15s;font-size:13px;text-decoration:none}
+.ibtn:hover{background:var(--s2);color:var(--text)}
+/* Pages */
+.page{display:none;padding:24px;animation:fadeUp .3s ease}
+.page.on{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* ─── AUTH SCREENS ───────────────────────────────────────── */
+.auth-root{min-height:100dvh;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:var(--bg);position:relative;overflow:hidden}
+.auth-root::before{content:'';position:fixed;width:600px;height:600px;
+  top:-200px;left:-100px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(99,102,241,.12),transparent 70%);
+  animation:orb1 20s ease-in-out infinite}
+.auth-root::after{content:'';position:fixed;width:500px;height:500px;
+  bottom:-100px;right:-100px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(139,92,246,.1),transparent 70%);
+  animation:orb2 25s ease-in-out infinite}
+@keyframes orb1{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,50px)}}
+@keyframes orb2{0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,-50px)}}
+.auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:24px;
+  padding:36px 32px;width:100%;max-width:420px;position:relative;z-index:1;
+  box-shadow:0 24px 64px rgba(0,0,0,.4);animation:fadeUp .4s var(--ease)}
+.auth-logo{width:56px;height:56px;border-radius:16px;margin:0 auto 18px;
+  background:linear-gradient(135deg,#6366f1,#a78bfa);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  box-shadow:0 0 32px rgba(99,102,241,.5)}
+.auth-title{font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;
+  text-align:center;color:var(--text);margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--t2);text-align:center;margin-bottom:24px;line-height:1.5}
+/* Tab switcher inside auth */
+.auth-tabs{display:flex;background:var(--s2);border-radius:12px;padding:4px;gap:4px;margin-bottom:22px}
+.auth-tab{flex:1;padding:8px;border-radius:9px;border:none;background:none;
+  color:var(--t2);font-size:13px;font-weight:500;transition:all .2s;cursor:pointer}
+.auth-tab.on{background:var(--surface);color:var(--accent);font-weight:600;
+  box-shadow:0 2px 8px rgba(0,0,0,.15)}
+/* ─── FORM ───────────────────────────────────────────────── */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.flabel{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.05em}
+.flabel .req{color:var(--accent);margin-left:2px}
+.finput{padding:10px 13px;background:var(--s2);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:13px;outline:none;width:100%;
+  transition:border-color .15s,box-shadow .15s}
+.finput:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--adim)}
+.finput::placeholder{color:var(--t3)}
+.finput-wrap{position:relative}
+.finput-wrap .finput{padding-right:40px}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--t3);font-size:14px;cursor:pointer;padding:2px}
+.eye-btn:hover{color:var(--text)}
+.fhint{font-size:11px;color:var(--t3);margin-top:3px}
+.ferr{font-size:12px;color:var(--err);margin-top:3px;display:none}
+.fgrid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:10px;
+  border:none;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap;cursor:pointer}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:hover{background:var(--ah);box-shadow:0 4px 16px var(--aglow);transform:translateY(-1px)}
+.btn-p:active{transform:none}
+.btn-p:disabled{opacity:.5;pointer-events:none}
+.btn-s{background:var(--s2);color:var(--t2);border:1px solid var(--border)}
+.btn-s:hover{background:var(--s3);color:var(--text)}
+.btn-d{background:rgba(239,68,68,.1);color:var(--err);border:1px solid rgba(239,68,68,.2)}
+.btn-d:hover{background:rgba(239,68,68,.2)}
+.btn-ok{background:rgba(16,185,129,.1);color:var(--ok);border:1px solid rgba(16,185,129,.2)}
+.btn-ok:hover{background:rgba(16,185,129,.2)}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:7px}
+.btn-icon{width:30px;height:30px;padding:0;border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center}
+.btn-full{width:100%;justify-content:center;padding:12px}
+/* Spinner inside button */
+.spin{animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ─── STATS ──────────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:18px;position:relative;overflow:hidden;transition:all .2s var(--ease)}
+.scard::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,var(--cc,.06%20transparent))}
+.scard:hover{transform:translateY(-2px);border-color:var(--border2)}
+.sval{font-size:28px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif;line-height:1}
+.slabel{font-size:11px;color:var(--t2);margin-top:4px}
+.sicon{position:absolute;top:14px;right:14px;width:34px;height:34px;
+  border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
+/* ─── TABLE ──────────────────────────────────────────────── */
+.twrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.ttoolbar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.swrap{position:relative;flex:1}
+.swrap::before{content:'⌕';position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  color:var(--t3);font-size:15px;pointer-events:none}
+.sinput{width:100%;padding:7px 12px 7px 30px;background:var(--s2);border:1px solid var(--border);
+  border-radius:9px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s}
+.sinput:focus{border-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;
+  color:var(--t3);text-transform:uppercase;letter-spacing:.06em;
+  background:var(--s2);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--s2)}
+td{padding:9px 14px;color:var(--t2);vertical-align:middle}
+td.bold{color:var(--text);font-weight:500}
+.cbadge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;
+  font-size:11px;font-weight:600}
+.cBinaural{background:rgba(6,182,212,.12);color:#06b6d4}
+.cNature  {background:rgba(16,185,129,.12);color:#10b981}
+.cGuided  {background:rgba(245,158,11,.12);color:#f59e0b}
+.cAmbient {background:rgba(139,92,246,.12);color:#8b5cf6}
+.cadmin   {background:rgba(99,102,241,.12);color:#818cf8}
+.cactive  {background:rgba(16,185,129,.12);color:#10b981}
+.cinactive{background:rgba(239,68,68,.12);color:#ef4444}
+.tag{display:inline-block;margin:1px;padding:2px 5px;border-radius:4px;
+  font-size:10px;background:var(--s3);color:var(--t2)}
+.empty{text-align:center;padding:48px 20px}
+.empty .eico{font-size:36px;opacity:.25;margin-bottom:10px}
+.empty p{color:var(--t2);font-size:13px}
+/* ─── MODAL ──────────────────────────────────────────────── */
+.overlay{display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
+  align-items:flex-end;justify-content:center}
+.overlay.on{display:flex;animation:fadeUp .2s ease}
+@media(min-width:600px){.overlay.on{align-items:center}}
+.modal{width:100%;max-width:540px;background:var(--surface);
+  border-radius:20px 20px 0 0;max-height:90vh;overflow-y:auto;
+  border:1px solid var(--border2);animation:slideUp .3s var(--ease)}
+@media(min-width:600px){.modal{border-radius:20px}}
+@keyframes slideUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhead{display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px 12px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--surface);z-index:1}
+.mtitle{font-size:15px;font-weight:700}
+.mbody{padding:18px 22px}
+.mfoot{padding:12px 22px 18px;display:flex;gap:8px;justify-content:flex-end;
+  border-top:1px solid var(--border)}
+/* ─── SECTION HEADER ─────────────────────────────────────── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sh-title{font-size:14px;font-weight:600}
+.sh-sub{font-size:12px;color:var(--t3);margin-top:2px}
+/* ─── TOAST ──────────────────────────────────────────────── */
+.toasts{position:fixed;bottom:18px;right:18px;z-index:999;
+  display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.toast{padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;
+  display:flex;align-items:center;gap:8px;max-width:300px;
+  border:1px solid var(--border2);box-shadow:0 8px 32px rgba(0,0,0,.3);
+  animation:slideUp .25s var(--ease)}
+.t-ok  {background:rgba(16,185,129,.9);color:#fff}
+.t-err {background:rgba(239,68,68,.9);color:#fff}
+.t-info{background:var(--surface);color:var(--text)}
+/* ─── LOADING BAR ────────────────────────────────────────── */
+#lbar{position:fixed;top:0;left:0;right:0;height:2px;z-index:9999;display:none;
+  background:linear-gradient(90deg,var(--accent),#a78bfa);animation:ldbar 1.5s ease-in-out infinite}
+@keyframes ldbar{0%{width:0;left:0}50%{width:60%}100%{width:0;left:100%}}
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .fgrid2{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+/* ─── Config box ─────────────────────────────────────────── */
+.cbox{background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:18px;margin-bottom:16px}
+.cboxtitle{font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.code{background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  padding:8px 12px;font-family:monospace;font-size:12px;color:var(--accent);
+  overflow-x:auto;white-space:nowrap;margin:6px 0}
+.driveout{margin-top:8px;padding:8px 12px;border-radius:8px;
+  background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);
+  color:var(--ok);font-size:11px;font-family:monospace;word-break:break-all;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="lbar"></div>
+<div class="toasts" id="toasts"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     AUTH SCREENS
+══════════════════════════════════════════════════════════ -->
+<div id="authRoot" class="auth-root">
+  <div class="auth-card">
+    <div class="auth-logo">◎</div>
+    <h1 class="auth-title">ZenFlow Admin</h1>
+    <p class="auth-sub" id="authSub">Sign in to manage your track library</p>
+
+    <!-- Tab switcher -->
+    <div class="auth-tabs" id="authTabs">
+      <button class="auth-tab on" onclick="switchAuth('login')">Login</button>
+      <button class="auth-tab" onclick="switchAuth('register')">Register</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="formLogin">
+      <div class="fg">
+        <label class="flabel">Email<span class="req">*</span></label>
+        <input id="lEmail" class="finput" type="email" placeholder="admin@gmail.com" autocomplete="email"/>
+      </div>
+      <div class="fg">
+        <label class="flabel">Password<span class="req">*</span></label>
+        <div class="finput-wrap">
+          <input id="lPass" class="finput" type="password" placeholder="••••••••" autocomplete="current-password"
+                 onkeydown="if(event.key==='Enter')doLogin()"/>
+          <button class="eye-btn" type="button" onclick="toggleEye('lPass',this)">👁</button>
+        </div>
+      </div>
+      <button class="btn btn-p btn-full" id="btnLogin" onclick="doLogin()">Login</button>
+      <button class="btn btn-s btn-full" style="margin-top:8px" onclick="switchAuth('forgot')">Forgot Password?</button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="formRegister" style="display:none">
+      <div class="fg">
+        <label class="flabel">Full Name<span class="req">*</span></label>
+        <input id="rName" class="finput" type="text" placeholder="Your Name"/>
+      </div>
+      <div class="fg">
+        <label class="flabel">Email<span class="req">*</span></label>
+        <input id="rEmail" class="finput" type="email" placeholder="you@gmail.com"/>
+      </div>
+      <div class="fg">
+        <label class="flabel">Password<span class="req">*</span></label>
+        <div class="finput-wrap">
+          <input id="rPass" class="finput" type="password" placeholder="Min 6 characters"
+                 onkeydown="if(event.key==='Enter')doRegister()"/>
+          <button class="eye-btn" type="button" onclick="toggleEye('rPass',this)">👁</button>
+        </div>
+      </div>
+      <button class="btn btn-p btn-full" id="btnReg" onclick="doRegister()">Create Account</button>
+    </div>
+
+    <!-- FORGOT PASSWORD FORM -->
+    <div id="formForgot" style="display:none">
+      <p style="font-size:13px;color:var(--t2);margin-bottom:16px">
+        Enter your email — we'll send a 6-digit reset code via Gmail.
+      </p>
+      <div class="fg">
+        <label class="flabel">Email<span class="req">*</span></label>
+        <input id="fpEmail" class="finput" type="email" placeholder="you@gmail.com"/>
+      </div>
+      <button class="btn btn-p btn-full" id="btnForgot" onclick="doForgot()">Send Reset Code</button>
+      <button class="btn btn-s btn-full" style="margin-top:8px" onclick="switchAuth('login')">← Back to Login</button>
+    </div>
+
+    <!-- RESET CODE FORM (shown after email sent) -->
+    <div id="formReset" style="display:none">
+      <p style="font-size:13px;color:var(--t2);margin-bottom:16px">
+        Check your email for the 6-digit code. Enter it below with your new password.
+      </p>
+      <div class="fg">
+        <label class="flabel">Reset Code<span class="req">*</span></label>
+        <input id="rcCode" class="finput" type="text" placeholder="123456" maxlength="6"
+               style="letter-spacing:6px;font-size:20px;text-align:center;font-weight:700"/>
+      </div>
+      <div class="fg">
+        <label class="flabel">New Password<span class="req">*</span></label>
+        <div class="finput-wrap">
+          <input id="rcPass" class="finput" type="password" placeholder="Min 6 characters"
+                 onkeydown="if(event.key==='Enter')doResetPw()"/>
+          <button class="eye-btn" type="button" onclick="toggleEye('rcPass',this)">👁</button>
+        </div>
+      </div>
+      <button class="btn btn-p btn-full" id="btnReset" onclick="doResetPw()">Reset Password</button>
+      <button class="btn btn-s btn-full" style="margin-top:8px" onclick="switchAuth('forgot')">Resend Code</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN APP (hidden until logged in)
+══════════════════════════════════════════════════════════ -->
+<div id="appRoot" class="layout" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-row">
+      <div class="logo-icon">◎</div>
+      <div>
+        <div class="logo-title">ZenFlow</div>
+        <div class="logo-sub">Admin Panel</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Dashboard</div>
+      <button class="nav-btn on" onclick="goPage('dashboard',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Overview
+      </button>
+
+      <div class="nav-label" style="margin-top:8px">Content</div>
+      <button class="nav-btn" onclick="goPage('tracks',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+        Track Library
+        <span class="nbadge" id="nbTracks">0</span>
+      </button>
+      <button class="nav-btn" onclick="goPage('addtrack',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+        Add Track
+      </button>
+
+      <div class="nav-label" style="margin-top:8px">Management</div>
+      <button class="nav-btn" onclick="goPage('users',this)" id="navUsers" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Users
+        <span class="nbadge" id="nbUsers">0</span>
+      </button>
+
+      <div class="nav-label" style="margin-top:8px">Tools</div>
+      <button class="nav-btn" onclick="goPage('ytconv',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
+        YT Converter
+      </button>
+      <button class="nav-btn" onclick="goPage('converter',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Drive Converter
+      </button>
+      <button class="nav-btn" onclick="goPage('profile',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        My Profile
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="user-row">
+        <div class="uavatar" id="uAvatar">A</div>
+        <div style="flex:1;min-width:0">
+          <div class="uname" id="uName">Admin</div>
+          <div class="urole" id="uRole">admin</div>
+        </div>
+        <button class="ibtn" onclick="doLogout()" title="Logout" style="border:none">⎋</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <header class="topbar">
+      <button class="ibtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+      <div class="topbar-title" id="pageTitle">Overview</div>
+      <button class="ibtn" onclick="refreshData()" title="Refresh">↻</button>
+      <button class="ibtn" onclick="toggleTheme()" title="Theme">◑</button>
+      <a href="/" target="_blank" class="ibtn" title="View App">↗</a>
+    </header>
+
+    <!-- ── DASHBOARD ───────────────────────────────── -->
+    <div class="page on" id="page-dashboard">
+      <div class="stats" id="dashStats">
+        <div class="scard"><div class="sval" id="st-total">0</div><div class="slabel">Total Tracks</div><div class="sicon" style="background:rgba(99,102,241,.15);color:#6366f1">◎</div></div>
+      </div>
+      <div class="sh"><div><div class="sh-title">Recent Tracks</div><div class="sh-sub">Last 5 added</div></div>
+        <button class="btn btn-p btn-sm" onclick="goPage('addtrack',null)">+ Add Track</button></div>
+      <div class="twrap"><table>
+        <thead><tr><th>#</th><th>Title</th><th>Category</th><th>Duration</th><th></th></tr></thead>
+        <tbody id="recentBody"><tr><td colspan="5"><div class="empty"><div class="eico">◎</div><p>No tracks yet</p></div></td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- ── TRACK LIBRARY ───────────────────────────── -->
+    <div class="page" id="page-tracks">
+      <div class="sh">
+        <div><div class="sh-title">Track Library</div><div class="sh-sub" id="libSub">—</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-s btn-sm" onclick="refreshData()">↻ Refresh</button>
+          <button class="btn btn-p btn-sm" onclick="goPage('addtrack',null)">+ Add</button>
+        </div>
+      </div>
+      <div class="twrap">
+        <div class="ttoolbar">
+          <div class="swrap"><input class="sinput" id="trackQ" placeholder="Search…" oninput="filterTracks()"/></div>
+          <select class="finput" id="catQ" onchange="filterTracks()" style="width:130px">
+            <option value="">All</option>
+            <option>Binaural</option><option>Nature</option><option>Guided</option><option>Ambient</option>
+          </select>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Duration</th><th>Tags</th><th>Audio</th><th>Actions</th></tr></thead>
+          <tbody id="trackBody"><tr><td colspan="7"><div class="empty"><div class="eico">◎</div><p>Loading…</p></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── ADD TRACK ───────────────────────────────── -->
+    <div class="page" id="page-addtrack">
+      <div class="sh"><div><div class="sh-title">Add New Track</div><div class="sh-sub">Fills directly into Google Sheet</div></div></div>
+      <div style="max-width:600px">
+        <div class="cbox">
+          <div class="fgrid2">
+            <div class="fg"><label class="flabel">ID</label>
+              <input id="fId" class="finput" readonly style="background:var(--s3);cursor:not-allowed"/></div>
+            <div class="fg"><label class="flabel">Category<span class="req">*</span></label>
+              <input id="fCat" class="finput" list="catList" placeholder="Select or type..."/>
+              <datalist id="catList"></datalist>
+            </div>
+            <div class="fg" style="grid-column:1/-1"><label class="flabel">Title<span class="req">*</span></label>
+              <input id="fTitle" class="finput" placeholder="Deep Trance Induction"/></div>
+            <div class="fg" style="grid-column:1/-1"><label class="flabel">Google Drive Link</label>
+              <input id="fLink" class="finput" placeholder="https://drive.google.com/file/d/…/view"
+                     oninput="autoConv('fLink','fConv');scheduleDurDetect('fLink','fAudioEl','fAudio','fDur','fDurStatus')"/>
+              <div id="fConv" class="driveout" style="display:none" onclick="copyText(this.textContent)"></div>
+            </div>
+            <div class="fg" style="grid-column:1/-1">
+              <label class="flabel">Duration <span id="fDurStatus" style="font-size:10px;color:var(--ok);font-weight:400;text-transform:none;letter-spacing:0"></span></label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input id="fDur" class="finput" placeholder="Auto-detected — or click 🎵 Detect" style="flex:1"/>
+                <button class="btn btn-ok btn-sm" type="button" onclick="detectDuration('fLink','fAudioEl','fAudio','fDur','fDurStatus')" title="Load audio and detect duration">🎵 Detect</button>
+              </div>
+            </div>
+            <div class="fg"><label class="flabel">Tags</label>
+              <input id="fTags" class="finput" placeholder="theta, trance, sleep"/></div>
+            <div class="fg" style="grid-column:1/-1"><label class="flabel">Description</label>
+              <textarea id="fDesc" class="finput" rows="3" placeholder="Brief description…"></textarea></div>
+          </div>
+          <div style="margin-top:12px">
+            <button class="btn btn-s btn-sm" onclick="testAudio('fLink','fAudio','fDur','fDurStatus')">▶ Test Audio</button>
+            <div id="fAudio" style="display:none;margin-top:8px;padding:8px 10px;
+              background:var(--s2);border:1px solid var(--border);border-radius:9px">
+              <audio id="fAudioEl" controls style="width:100%;height:30px;accent-color:var(--accent)"></audio>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-s" onclick="clearAddForm()">Clear</button>
+          <button class="btn btn-p" id="btnSave" onclick="saveTrack()">💾 Save to Sheet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── USERS (admin only) ───────────────────────── -->
+    <div class="page" id="page-users">
+      <div class="sh"><div><div class="sh-title">Users</div><div class="sh-sub" id="userSub">—</div></div>
+        <button class="btn btn-s btn-sm" onclick="loadUsers()">↻ Refresh</button></div>
+      <div class="twrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody id="userBody"><tr><td colspan="6"><div class="empty"><div class="eico">👤</div><p>Loading…</p></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── YT CONVERTER ─────────────────────────────── -->
+    <div class="page" id="page-ytconv">
+      <div class="sh"><div><div class="sh-title">YouTube to MP3 Converter</div><div class="sh-sub">Download tracks from YouTube to upload to Google Drive</div></div></div>
+      <div class="cbox" style="padding:0;overflow:hidden;height:600px;max-width:800px;border-radius:16px;">
+        <iframe src="https://acumarko.pl/" width="100%" height="100%" style="border:none;"></iframe>
+      </div>
+    </div>
+
+    <!-- ── DRIVE CONVERTER ─────────────────────────── -->
+    <div class="page" id="page-converter">
+      <div class="sh"><div><div class="sh-title">Drive URL Converter</div><div class="sh-sub">Share link → Stream URL</div></div></div>
+      <div style="max-width:520px">
+        <div class="cbox">
+          <div class="fg" style="margin-bottom:12px"><label class="flabel">Drive Share Link</label>
+            <input id="convIn" class="finput" placeholder="https://drive.google.com/file/d/…/view" oninput="autoConv('convIn','convOut')"/>
+          </div>
+          <div id="convOut" class="driveout" style="display:none" onclick="copyText(this.textContent)"></div>
+          <div style="display:flex;gap:8px;margin-top:10px" id="convActions" style="display:none">
+            <button class="btn btn-ok btn-sm" onclick="copyText(document.getElementById('convOut').textContent)">📋 Copy</button>
+            <button class="btn btn-s btn-sm" onclick="testAudio('convIn','convAudio')">▶ Test</button>
+          </div>
+          <div id="convAudio" style="display:none;margin-top:8px;padding:8px 10px;
+            background:var(--s2);border:1px solid var(--border);border-radius:9px">
+            <audio id="convAudioEl" controls style="width:100%;height:30px;accent-color:var(--accent)"></audio>
+          </div>
+        </div>
+        <div class="cbox">
+          <div class="cboxtitle">📌 How to get Drive share link</div>
+          <ol style="font-size:12px;color:var(--t2);line-height:2.2;padding-left:16px">
+            <li>Drive → Audio file → Right-click → <strong style="color:var(--text)">Share</strong></li>
+            <li><strong style="color:var(--text)">"Anyone with the link"</strong> → Viewer</li>
+            <li><strong style="color:var(--text)">Copy link</strong> → paste above</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROFILE ─────────────────────────────────── -->
+    <div class="page" id="page-profile">
+      <div class="sh"><div><div class="sh-title">My Profile</div><div class="sh-sub">Update your name or password</div></div></div>
+      <div style="max-width:480px">
+        <div class="cbox">
+          <div class="cboxtitle">👤 Account Info</div>
+          <div class="fg"><label class="flabel">Full Name</label>
+            <input id="profName" class="finput"/></div>
+          <div class="fg"><label class="flabel">Email</label>
+            <input id="profEmail" class="finput" readonly style="background:var(--s3);cursor:not-allowed"/></div>
+          <button class="btn btn-p btn-sm" onclick="updateProfile()">Save Name</button>
+        </div>
+        <div class="cbox">
+          <div class="cboxtitle">🔑 Change Password</div>
+          <div class="fg"><label class="flabel">Current Password</label>
+            <input id="cpCurrent" class="finput" type="password"/></div>
+          <div class="fg"><label class="flabel">New Password</label>
+            <div class="finput-wrap">
+              <input id="cpNew" class="finput" type="password" placeholder="Min 6 characters"/>
+              <button class="eye-btn" type="button" onclick="toggleEye('cpNew',this)">👁</button>
+            </div>
+          </div>
+          <button class="btn btn-p btn-sm" onclick="changePassword()">Update Password</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="editOverlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mhead">
+      <span class="mtitle">Edit Track</span>
+      <button class="ibtn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody">
+      <input type="hidden" id="mRow"/>
+      <div class="fgrid2">
+        <div class="fg"><label class="flabel">ID</label>
+          <input id="mId" class="finput" readonly style="background:var(--s3);cursor:not-allowed"/></div>
+        <div class="fg"><label class="flabel">Category<span class="req">*</span></label>
+          <input id="mCat" class="finput" list="catList" placeholder="Select or type..."/></div>
+        <div class="fg" style="grid-column:1/-1"><label class="flabel">Title<span class="req">*</span></label>
+          <input id="mTitle" class="finput"/></div>
+        <div class="fg" style="grid-column:1/-1"><label class="flabel">Drive Link</label>
+          <input id="mLink" class="finput"
+                 oninput="autoConv('mLink','mConv');scheduleDurDetect('mLink','mAudioEl','mAudioWrap','mDur','mDurStatus')"/>
+          <div id="mConv" class="driveout" style="display:none" onclick="copyText(this.textContent)"></div>
+        </div>
+        <div class="fg" style="grid-column:1/-1">
+          <label class="flabel">Duration <span id="mDurStatus" style="font-size:10px;color:var(--ok);font-weight:400;text-transform:none;letter-spacing:0"></span></label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="mDur" class="finput" placeholder="Auto-detected — or click 🎵 Detect" style="flex:1"/>
+            <button class="btn btn-ok btn-sm" type="button" onclick="detectDuration('mLink','mAudioEl','mAudioWrap','mDur','mDurStatus',true)" title="Load audio and detect duration">🎵 Detect</button>
+          </div>
+        </div>
+        <div class="fg"><label class="flabel">Tags</label><input id="mTags" class="finput"/></div>
+        <div class="fg" style="grid-column:1/-1"><label class="flabel">Description</label>
+          <textarea id="mDesc" class="finput" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="testAudio('mLink','mAudioWrap','mDur','mDurStatus')">▶ Test</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-p" onclick="updateTrack()">💾 Save</button>
+    </div>
+    <div id="mAudioWrap" style="display:none;padding:8px 14px 14px">
+      <audio id="mAudioEl" controls style="width:100%;height:30px;accent-color:var(--accent)"></audio>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   CONFIG — paste your Apps Script Web App URL here
+═══════════════════════════════════════════════════════ */
+const API = 'https://script.google.com/macros/s/AKfycbwTpdrLK3wAhcnW18XreVqlOabJ7vhS4Gy9odOj9laJhCrP46G36NyaWlCxMRY087TH/exec';
+
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let SESSION   = null;   // { token, user }
+let allTracks = [];
+let allUsers  = [];
+let resetEmail = '';    // stored for reset flow
+
+/* ═══════════════════════════════════════════════════════
+   THEME
+═══════════════════════════════════════════════════════ */
+const saved = localStorage.getItem('zf-admin-theme') || 'dark';
+document.documentElement.setAttribute('data-theme', saved);
+function toggleTheme() {
+  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('zf-admin-theme', t);
+}
+
+/* ═══════════════════════════════════════════════════════
+   API HELPER
+═══════════════════════════════════════════════════════ */
+async function api(action, params = {}) {
+  loading(true);
+  try {
+    const body    = JSON.stringify({ action, ...params });
+    const res     = await fetch(API, { method: 'POST', body });
+    const data    = await res.json();
+    if (!data.success) throw new Error(data.error || 'API error');
+    return data;
+  } finally {
+    loading(false);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   AUTH FLOWS
+═══════════════════════════════════════════════════════ */
+function switchAuth(mode) {
+  ['login','register','forgot','reset'].forEach(m => {
+    document.getElementById('form'+cap(m)).style.display = m === mode ? '' : 'none';
+  });
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('on',
+    (mode==='login'&&i===0)||(mode==='register'&&i===1)));
+  document.getElementById('authTabs').style.display = (mode==='forgot'||mode==='reset') ? 'none' : '';
+  const subs = {login:'Sign in to manage your track library',register:'Create your admin account',
+    forgot:'Reset via Gmail — free ✉️',reset:'Enter the 6-digit code from your email'};
+  document.getElementById('authSub').textContent = subs[mode] || '';
+}
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+async function doLogin() {
+  const email = v('lEmail'), pass = v('lPass');
+  if (!email||!pass) return toast('Enter email and password','err');
+  setBtnLoad('btnLogin',true,'Signing in…');
+  try {
+    const r = await api('login',{email,password:pass});
+    onLoggedIn(r);
+  } catch(e) { toast(e.message,'err'); }
+  setBtnLoad('btnLogin',false,'Login');
+}
+
+async function doRegister() {
+  const name=v('rName'),email=v('rEmail'),pass=v('rPass');
+  if(!name||!email||!pass) return toast('All fields required','err');
+  if(pass.length<6) return toast('Password min 6 characters','err');
+  setBtnLoad('btnReg',true,'Creating account…');
+  try {
+    const r = await api('register',{name,email,password:pass});
+    toast('Account created! Welcome 🎉','ok');
+    onLoggedIn(r);
+  } catch(e){ toast(e.message,'err'); }
+  setBtnLoad('btnReg',false,'Create Account');
+}
+
+async function doForgot() {
+  const email = v('fpEmail');
+  if(!email) return toast('Enter your email','err');
+  setBtnLoad('btnForgot',true,'Sending…');
+  try {
+    await api('forgot_password',{email});
+    resetEmail = email;
+    toast('Code sent! Check your inbox ✉️','ok');
+    switchAuth('reset');
+  } catch(e){ toast(e.message,'err'); }
+  setBtnLoad('btnForgot',false,'Send Reset Code');
+}
+
+async function doResetPw() {
+  const code=v('rcCode'),pass=v('rcPass');
+  if(!code||!pass) return toast('Enter code and new password','err');
+  if(pass.length<6) return toast('Password min 6 characters','err');
+  setBtnLoad('btnReset',true,'Resetting…');
+  try {
+    await api('reset_password',{email:resetEmail,code,password:pass});
+    toast('Password reset! Please login ✅','ok');
+    switchAuth('login');
+    document.getElementById('lEmail').value = resetEmail;
+  } catch(e){ toast(e.message,'err'); }
+  setBtnLoad('btnReset',false,'Reset Password');
+}
+
+function onLoggedIn(r) {
+  SESSION = { token: r.session_token, user: r.user };
+  localStorage.setItem('zf-session', JSON.stringify(SESSION));
+  document.getElementById('authRoot').style.display = 'none';
+  document.getElementById('appRoot').style.display  = 'flex';
+  document.getElementById('uName').textContent    = r.user.name;
+  document.getElementById('uAvatar').textContent  = (r.user.name||'A')[0].toUpperCase();
+  document.getElementById('uRole').textContent    = r.user.role;
+  document.getElementById('profName').value       = r.user.name;
+  document.getElementById('profEmail').value      = r.user.email;
+  // Show users nav only for admin
+  document.getElementById('navUsers').style.display = r.user.role==='admin' ? '' : 'none';
+  refreshData();
+}
+
+async function doLogout() {
+  try { if(SESSION) await api('logout',{session_token:SESSION.token}); } catch(_) {}
+  SESSION = null;
+  localStorage.removeItem('zf-session');
+  document.getElementById('appRoot').style.display  = 'none';
+  document.getElementById('authRoot').style.display = 'flex';
+  switchAuth('login');
+}
+
+/* ── Auto-restore session ──────────────────────────────── */
+window.addEventListener('DOMContentLoaded', async () => {
+  const s = localStorage.getItem('zf-session');
+  if (s) {
+    try {
+      const saved = JSON.parse(s);
+      const r = await api('verify_session',{session_token:saved.token});
+      if(r.success) { onLoggedIn({...saved, user:r.user}); return; }
+    } catch(_) {}
+    localStorage.removeItem('zf-session');
+  }
+});
+
+/* ═══════════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════════ */
+const PAGE_TITLES = {dashboard:'Overview',tracks:'Track Library',addtrack:'Add Track',
+  users:'Users',ytconv:'YT Converter',converter:'Drive Converter',profile:'My Profile'};
+
+function goPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('page-'+id).classList.add('on');
+  if(btn) btn.classList.add('on');
+  document.getElementById('pageTitle').textContent = PAGE_TITLES[id]||id;
+  if(id==='addtrack') refreshNextId();
+  if(id==='users') loadUsers();
+}
+
+/* ═══════════════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════════════ */
+async function refreshData() {
+  if(!SESSION) return;
+  try {
+    const r = await api('get_tracks',{session_token:SESSION.token});
+    allTracks = r.tracks || [];
+    renderDashboard();
+    populateCategories();
+    renderTrackTable(allTracks);
+    document.getElementById('nbTracks').textContent = allTracks.length;
+    document.getElementById('libSub').textContent   = `${allTracks.length} track${allTracks.length!==1?'s':''} in sheet`;
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function loadUsers() {
+  if(!SESSION||SESSION.user.role!=='admin') return;
+  try {
+    const r = await api('get_users',{session_token:SESSION.token});
+    allUsers = r.users||[];
+    renderUsers(allUsers);
+    document.getElementById('nbUsers').textContent = allUsers.length;
+    document.getElementById('userSub').textContent = `${allUsers.length} user${allUsers.length!==1?'s':''} registered`;
+  } catch(e) { toast(e.message,'err'); }
+}
+
+function populateCategories() {
+  const cats = [...new Set(allTracks.map(t=>t.category).filter(Boolean))];
+  const listHtml = cats.map(c => `<option value="${esc(c)}">`).join('');
+  
+  const dl = el('catList');
+  if (dl) dl.innerHTML = listHtml;
+  
+  const catQ = el('catQ');
+  const currentQ = catQ.value;
+  const defCats = ['Binaural','Nature','Guided','Ambient'];
+  const allUnique = [...new Set([...defCats, ...cats])];
+  
+  catQ.innerHTML = `<option value="">All</option>` + allUnique.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  catQ.value = currentQ || '';
+}
+
+/* ─── CATEGORY PALETTE ───────────────────────────────── */
+const CAT_PALETTE = [
+  {bg:'rgba(6,182,212,.15)',  color:'#06b6d4', icon:'◎'},
+  {bg:'rgba(16,185,129,.15)', color:'#10b981', icon:'♃'},
+  {bg:'rgba(245,158,11,.15)', color:'#f59e0b', icon:'◈'},
+  {bg:'rgba(139,92,246,.15)', color:'#8b5cf6', icon:'◉'},
+  {bg:'rgba(236,72,153,.15)', color:'#ec4899', icon:'◆'},
+  {bg:'rgba(34,211,238,.15)', color:'#22d3ee', icon:'◇'},
+  {bg:'rgba(251,146,60,.15)', color:'#fb923c', icon:'◐'},
+  {bg:'rgba(163,230,53,.15)', color:'#a3e635', icon:'◑'},
+];
+
+/* ─── DASHBOARD ──────────────────────────────────────── */
+function renderDashboard() {
+  el('st-total').textContent = allTracks.length;
+
+  // Build dynamic category stats
+  const cats = [...new Set(allTracks.map(t=>t.category).filter(Boolean))].sort();
+  const statsEl = el('dashStats');
+  // Remove old category cards (keep first — Total Tracks)
+  [...statsEl.children].slice(1).forEach(c=>c.remove());
+  cats.forEach((cat, i) => {
+    const p = CAT_PALETTE[i % CAT_PALETTE.length];
+    const count = allTracks.filter(t=>t.category===cat).length;
+    const card = document.createElement('div');
+    card.className = 'scard';
+    card.innerHTML = `<div class="sval">${count}</div><div class="slabel">${esc(cat)}</div>
+      <div class="sicon" style="background:${p.bg};color:${p.color}">${p.icon}</div>`;
+    statsEl.appendChild(card);
+  });
+
+  const recent = [...allTracks].slice(-5).reverse();
+  el('recentBody').innerHTML = recent.length === 0
+    ? `<tr><td colspan="5"><div class="empty"><div class="eico">◎</div><p>No tracks yet</p></div></td></tr>`
+    : recent.map(t=>`<tr>
+        <td style="color:var(--t3)">${t.id}</td>
+        <td class="bold">${esc(t.title)}</td>
+        <td><span class="cbadge c${t.category}">${t.category}</span></td>
+        <td>${t.duration||'—'}</td>
+        <td><button class="btn btn-s btn-sm btn-icon" onclick="openEdit(${t._row})" title="Edit">✏</button></td>
+      </tr>`).join('');
+}
+
+/* ─── TRACK TABLE ────────────────────────────────────── */
+function renderTrackTable(tracks) {
+  el('trackBody').innerHTML = tracks.length === 0
+    ? `<tr><td colspan="7"><div class="empty"><div class="eico">◎</div><p>No tracks found</p></div></td></tr>`
+    : tracks.map(t=>{
+        const tags = (t.tags||'').split(',').map(s=>s.trim()).filter(Boolean);
+        const url  = drive2stream(t.drive_link);
+        return `<tr>
+          <td style="color:var(--t3)">${t.id}</td>
+          <td class="bold">${esc(t.title)}</td>
+          <td><span class="cbadge c${t.category}">${t.category||'—'}</span></td>
+          <td>${t.duration||'—'}</td>
+          <td>${tags.map(g=>`<span class="tag">${esc(g)}</span>`).join('')}</td>
+          <td>${url?`<button class="btn btn-ok btn-sm btn-icon" onclick="quickPlay('${url}')" title="Play">▶</button>`:'—'}</td>
+          <td>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-s btn-sm btn-icon" onclick="openEdit(${t._row})" title="Edit">✏</button>
+              ${SESSION?.user?.role==='admin'
+                ?`<button class="btn btn-d btn-sm btn-icon" onclick="deleteTrack(${t._row},'${esc(t.title)}')" title="Delete">🗑</button>`
+                :''}
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+}
+
+function filterTracks() {
+  const q   = el('trackQ').value.toLowerCase();
+  const cat = el('catQ').value;
+  renderTrackTable(allTracks.filter(t=>
+    (!q || t.title.toLowerCase().includes(q) || t.tags.toLowerCase().includes(q)) &&
+    (!cat || t.category===cat)
+  ));
+}
+
+/* ─── USERS TABLE ────────────────────────────────────── */
+function renderUsers(users) {
+  el('userBody').innerHTML = users.length === 0
+    ? `<tr><td colspan="6"><div class="empty"><div class="eico">👤</div><p>No users</p></div></td></tr>`
+    : users.map(u=>`<tr>
+        <td class="bold">${esc(u.name)}</td>
+        <td>${esc(u.email)}</td>
+        <td><span class="cbadge c${u.role}">${u.role}</span></td>
+        <td><span class="cbadge c${u.status}">${u.status}</span></td>
+        <td style="color:var(--t3);font-size:11px">${u.created_at?u.created_at.slice(0,10):''}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-s btn-sm" onclick="toggleUser('${u.email}')">
+              ${u.status==='active'?'Deactivate':'Activate'}
+            </button>
+            <button class="btn btn-d btn-sm btn-icon" onclick="deleteUser('${u.email}','${esc(u.name)}')">🗑</button>
+          </div>
+        </td>
+      </tr>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
+   ADD TRACK
+═══════════════════════════════════════════════════════ */
+function refreshNextId() {
+  const maxId = allTracks.reduce((m,t)=>Math.max(m,parseInt(t.id)||0),0);
+  el('fId').value = maxId + 1;
+}
+
+function clearAddForm() {
+  ['fCat','fTitle','fLink','fDur','fTags','fDesc'].forEach(i=>el(i).value='');
+  el('fConv').style.display='none';
+  el('fAudio').style.display='none';
+  refreshNextId();
+}
+
+async function saveTrack() {
+  const title=v('fTitle'),cat=v('fCat');
+  if(!title||!cat) return toast('Title and Category required','err');
+  setBtnLoad('btnSave',true,'Saving…');
+  try {
+    await api('add_track',{
+      session_token:SESSION.token,
+      title, category:cat,
+      drive_link:v('fLink'), duration:v('fDur'),
+      tags:v('fTags'), description:v('fDesc'),
+    });
+    toast(`✅ "${title}" saved to Sheet!`,'ok');
+    clearAddForm();
+    await refreshData();
+  } catch(e){ toast(e.message,'err'); }
+  setBtnLoad('btnSave',false,'💾 Save to Sheet');
+}
+
+/* ═══════════════════════════════════════════════════════
+   EDIT MODAL
+═══════════════════════════════════════════════════════ */
+function openEdit(rowIndex) {
+  const t = allTracks.find(t=>t._row===rowIndex);
+  if(!t) return;
+  el('mRow').value   = rowIndex;
+  el('mId').value    = t.id;
+  el('mTitle').value = t.title;
+  el('mCat').value   = t.category;
+  el('mLink').value  = t.drive_link;
+  el('mDur').value   = t.duration;
+  el('mTags').value  = t.tags;
+  el('mDesc').value  = t.description;
+  el('mConv').style.display='none';
+  el('editOverlay').classList.add('on');
+}
+
+function closeModal() { el('editOverlay').classList.remove('on'); }
+
+async function updateTrack() {
+  if(!v('mTitle')||!v('mCat')) return toast('Title and Category required','err');
+  const durSent = v('mDur');
+  try {
+    const r = await api('update_track',{
+      session_token:SESSION.token,
+      row_index:el('mRow').value,
+      id:v('mId'), title:v('mTitle'), category:v('mCat'),
+      drive_link:v('mLink'), duration:durSent,
+      tags:v('mTags'), description:v('mDesc'),
+    });
+    // Debug: show what was sent vs what server received
+    toast(`✅ Saved | sent dur: "${durSent}" | server got: "${r.received_duration||'?'}"`, 'ok');
+    closeModal();
+    await refreshData();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+
+async function deleteTrack(rowIndex,title) {
+  if(!confirm(`Delete "${title}"? Cannot be undone.`)) return;
+  try {
+    await api('delete_track',{session_token:SESSION.token,row_index:rowIndex});
+    toast(`🗑 "${title}" deleted`,'ok');
+    await refreshData();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   USER MANAGEMENT
+═══════════════════════════════════════════════════════ */
+async function toggleUser(email) {
+  try {
+    const r = await api('toggle_user',{session_token:SESSION.token,target_email:email});
+    toast(`User ${r.status}`,'ok');
+    await loadUsers();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function deleteUser(email,name) {
+  if(!confirm(`Delete user "${name}"?`)) return;
+  try {
+    await api('delete_user',{session_token:SESSION.token,target_email:email});
+    toast(`🗑 "${name}" deleted`,'ok');
+    await loadUsers();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PROFILE
+═══════════════════════════════════════════════════════ */
+async function updateProfile() {
+  const name = v('profName');
+  if(!name) return toast('Enter a name','err');
+  try {
+    await api('update_profile',{session_token:SESSION.token,name});
+    toast('Name updated ✅','ok');
+    SESSION.user.name = name;
+    el('uName').textContent   = name;
+    el('uAvatar').textContent = name[0].toUpperCase();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function changePassword() {
+  const cur=v('cpCurrent'),nw=v('cpNew');
+  if(!cur||!nw) return toast('Enter both fields','err');
+  if(nw.length<6) return toast('New password min 6 chars','err');
+  try {
+    await api('update_profile',{session_token:SESSION.token,current_password:cur,new_password:nw});
+    toast('Password changed ✅','ok');
+    el('cpCurrent').value=''; el('cpNew').value='';
+  } catch(e){ toast(e.message,'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   AUDIO & DRIVE UTILS
+═══════════════════════════════════════════════════════ */
+
+/* ─── DURATION AUTO-DETECT (DOM-based, bypasses service worker) ─── */
+// Uses the EXISTING <audio> elements already in the DOM.
+// Reusing a DOM-attached element avoids PWA service-worker interception
+// that blocks programmatically-created `new Audio()` on GitHub Pages.
+let _schedTimers = {};
+function scheduleDurDetect(linkInputId, audioElId, wrapId, durInputId, statusId) {
+  clearTimeout(_schedTimers[linkInputId]);
+  _schedTimers[linkInputId] = setTimeout(() => {
+    const raw = v(linkInputId);
+    const url = drive2stream(raw);
+    if (!url) return;
+
+    const statusEl = statusId ? el(statusId) : null;
+    const audioEl  = el(audioElId);
+    const wrap     = el(wrapId);
+    if (!audioEl) return;
+
+    // Remove previous listener
+    if (audioEl._durDetectListener) {
+      audioEl.removeEventListener('loadedmetadata', audioEl._durDetectListener);
+    }
+    if (audioEl._durErrorListener) {
+      audioEl.removeEventListener('error', audioEl._durErrorListener);
+    }
+
+    if (statusEl) statusEl.textContent = '⟳ detecting…';
+
+    audioEl._durDetectListener = function() {
+      const secs = Math.round(audioEl.duration);
+      if (isFinite(secs) && secs > 0) {
+        const h = Math.floor(secs/3600);
+        const m = Math.floor((secs%3600)/60);
+        const s = secs%60;
+        const fmt = h > 0
+          ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+          : `${m}:${String(s).padStart(2,'0')}`;
+        el(durInputId).value = fmt;
+        if (statusEl) statusEl.textContent = '✓ detected';
+        // Edit modal: auto-save
+        if (linkInputId === 'mLink' && SESSION) autoSaveDuration(fmt, statusEl);
+      } else {
+        if (statusEl) statusEl.textContent = '';
+      }
+      // Pause after metadata — don't auto-play unless user clicked Test
+      audioEl.pause();
+    };
+
+    audioEl._durErrorListener = function() {
+      if (statusEl) statusEl.textContent = '';
+    };
+
+    audioEl.addEventListener('loadedmetadata', audioEl._durDetectListener, { once: true });
+    audioEl.addEventListener('error',          audioEl._durErrorListener,  { once: true });
+
+    // Show the audio panel so the browser treats this as a visible media element
+    if (wrap) wrap.style.display = 'block';
+    audioEl.src = url;
+    audioEl.load();         // loads metadata without playing
+    audioEl.volume = 0;     // muted in case it auto-plays briefly
+  }, 700);
+}
+
+/* \u2500\u2500\u2500 \ud83c\udfb5 DETECT DURATION BUTTON \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+   User-initiated click = user gesture = bypasses PWA service worker.
+   Mutes audio, plays briefly to trigger loadedmetadata, then pauses.
+   Works on GitHub Pages, localhost, and everywhere. */
+function detectDuration(linkInputId, audioElId, wrapId, durInputId, statusId, autoSave) {
+  const url = drive2stream(v(linkInputId));
+  if (!url) return toast('Paste a Drive/Dropbox link first', 'err');
+
+  const statusEl = statusId ? el(statusId) : null;
+  const audioEl  = el(audioElId);
+  if (!audioEl)  return;
+
+  if (statusEl) statusEl.textContent = '⟳ detecting…';
+
+  // Remove old listeners
+  if (audioEl._durDetectListener) audioEl.removeEventListener('loadedmetadata', audioEl._durDetectListener);
+  if (audioEl._durErrorListener)  audioEl.removeEventListener('error', audioEl._durErrorListener);
+
+  audioEl._durDetectListener = function() {
+    const secs = Math.round(audioEl.duration);
+    // ── Stop immediately — no audible playback ──
+    audioEl.pause();
+    audioEl.src    = '';   // clear so Test Audio button starts fresh
+    audioEl.volume = 1;    // restore for future playback
+    const wrap = el(wrapId);
+    if (wrap) wrap.style.display = 'none'; // keep panel hidden
+
+    if (isFinite(secs) && secs > 0) {
+      const h = Math.floor(secs/3600);
+      const m = Math.floor((secs%3600)/60);
+      const s = secs%60;
+      const fmt = h > 0
+        ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+        : `${m}:${String(s).padStart(2,'0')}`;
+      el(durInputId).value = fmt;
+      if (statusEl) statusEl.textContent = '✓ detected';
+      if (autoSave && SESSION) autoSaveDuration(fmt, statusEl);
+    } else {
+      if (statusEl) statusEl.textContent = '⚠ could not detect';
+    }
+  };
+
+  audioEl._durErrorListener = function() {
+    audioEl.volume = 1;
+    if (statusEl) statusEl.textContent = '⚠ load failed — check link';
+  };
+
+  audioEl.addEventListener('loadedmetadata', audioEl._durDetectListener, { once: true });
+  audioEl.addEventListener('error',          audioEl._durErrorListener,  { once: true });
+
+  // Keep audio panel HIDDEN — silent background detection only
+  audioEl.volume = 0;
+  audioEl.src    = url;
+  // play() triggers streaming (bypasses SW) → then immediately pause
+  audioEl.play()
+    .then(() => audioEl.pause())   // pause right away — before any audio heard
+    .catch(() => audioEl.load());  // fallback if autoplay blocked
+}
+
+
+function drive2stream(url) {
+  if(!url) return '';
+  if(url.includes('dropbox.com')) return url.replace('dl=0', 'raw=1').replace('dl=1', 'raw=1');
+  if(url.includes('docs.google.com/uc')) return url;
+  const m1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if(m1) return `https://docs.google.com/uc?export=download&id=${m1[1]}`;
+  const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m2) return `https://docs.google.com/uc?export=download&id=${m2[1]}`;
+  return url;
+}
+
+function autoConv(inputId, outId) {
+  const raw  = v(inputId);
+  const conv = drive2stream(raw);
+  const div  = el(outId);
+  if(conv && conv !== raw) { div.textContent=conv; div.style.display='block'; }
+  else { div.style.display='none'; }
+  // show conv actions if they exist
+  const acts = el('convActions');
+  if(acts) acts.style.display = (conv&&conv!==raw) ? 'flex' : 'none';
+}
+
+function testAudio(inputId, wrapId, durInputId, statusId) {
+  const raw  = v(inputId);
+  const url  = drive2stream(raw);
+  if(!url) return toast('Enter a Drive link first','err');
+  const wrap = el(wrapId);
+  wrap.style.display='block';
+  const audio = wrap.querySelector('audio');
+
+  // Remove old listener to avoid duplicates
+  if (audio._durListener) audio.removeEventListener('loadedmetadata', audio._durListener);
+
+  if (durInputId) {
+    const statusEl = statusId ? el(statusId) : null;
+    if (statusEl) statusEl.textContent = '⟳ detecting…';
+
+    audio._durListener = function() {
+      const secs = Math.round(audio.duration);
+      if (isFinite(secs) && secs > 0) {
+        const h = Math.floor(secs/3600);
+        const m = Math.floor((secs%3600)/60);
+        const s = secs%60;
+        const fmt = h > 0
+          ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+          : `${m}:${String(s).padStart(2,'0')}`;
+        el(durInputId).value = fmt;
+        if (statusEl) statusEl.textContent = '✓ detected';
+        // Edit modal: auto-save detected duration to sheet
+        if (inputId === 'mLink' && SESSION) {
+          autoSaveDuration(fmt, statusEl);
+        }
+      } else {
+        if (statusEl) statusEl.textContent = '';
+      }
+    };
+    audio.addEventListener('loadedmetadata', audio._durListener);
+  }
+
+  audio.src = url;
+  audio.play().catch(()=>{});
+}
+
+async function autoSaveDuration(fmt, statusEl) {
+  const rowIndex = el('mRow').value;
+  if (!rowIndex || !SESSION) return;
+  try {
+    if (statusEl) statusEl.textContent = '⟳ saving…';
+    await api('update_track', {
+      session_token: SESSION.token,
+      row_index: rowIndex,
+      id:          v('mId'),
+      title:       v('mTitle'),
+      category:    v('mCat'),
+      drive_link:  v('mLink'),
+      duration:    fmt,
+      tags:        v('mTags'),
+      description: v('mDesc'),
+    });
+    if (statusEl) { statusEl.textContent = '✅ saved'; setTimeout(()=>{ if(statusEl) statusEl.textContent=''; },3000); }
+    const t = allTracks.find(t => t._row === parseInt(rowIndex));
+    if (t) { t.duration = fmt; renderTrackTable(allTracks); }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '⚠ save failed';
+  }
+}
+
+
+function quickPlay(url) {
+  document.getElementById('convIn').value = url;
+  autoConv('convIn','convOut');
+  goPage('converter', null);
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  // test it
+  const audio = el('convAudioEl');
+  if(audio){ audio.src=url; audio.play(); el('convAudio').style.display='block'; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════ */
+const el  = id => document.getElementById(id);
+const v   = id => (el(id)?.value||'').trim();
+const esc = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function loading(on) { el('lbar').style.display = on ? 'block' : 'none'; }
+
+function toast(msg, type='info') {
+  const c = el('toasts');
+  const t = document.createElement('div');
+  t.className = `toast t-${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
+function setBtnLoad(btnId, on, label) {
+  const b = el(btnId);
+  if(!b) return;
+  b.disabled = on;
+  b.innerHTML = on ? `<span class="spin">◎</span> ${label}` : label;
+}
+
+function toggleEye(inputId, btn) {
+  const input = el(inputId);
+  const show  = input.type === 'password';
+  input.type  = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(()=>toast('📋 Copied!','ok'));
+}
+</script>
+</body>
+</html>
