@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { getSearchSuggestions } from '../services/invidiousService';
 import { Search, Sun, Moon, Play, Menu, X, Clock, Bookmark, ThumbsUp } from 'lucide-react';
+import ShieldButton from './ShieldButton';
 
 export default function Header({ onSearch, onSelectCategory, onNavigate, currentTab, toggleSidebar }) {
   const { theme, toggleTheme } = useTheme();
@@ -114,8 +115,11 @@ export default function Header({ onSearch, onSelectCategory, onNavigate, current
         )}
       </div>
 
-      {/* Right section: Shortcuts & Theme Switcher */}
+      {/* Right section: Shortcuts, Shield & Theme Switcher */}
       <div className="flex items-center gap-1.5">
+        {/* Real-time Brave Ad Shield */}
+        <ShieldButton />
+
         <button
           onClick={() => onNavigate('watchLater')}
           title="Watch Later"

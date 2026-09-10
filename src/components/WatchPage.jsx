@@ -11,9 +11,11 @@ import {
   toggleSubscription, 
   isSubscribed 
 } from '../services/libraryService';
-import { ThumbsUp, Bookmark, Share2, Check, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { usePlayer } from '../context/PlayerContext';
+import { ThumbsUp, Bookmark, Share2, Check, ChevronDown, ChevronUp, MessageSquare, Minimize2 } from 'lucide-react';
 
 export default function WatchPage({ video, onSelectVideo }) {
+  const { minimizePlayer } = usePlayer();
   const [details, setDetails] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,12 +31,14 @@ export default function WatchPage({ video, onSelectVideo }) {
     addToHistory(video);
     setLiked(isVideoLiked(video.id));
     setSaved(isInWatchLater(video.id));
+    setDetails(null);
+    setComments([]);
 
     let isMounted = true;
     setLoading(true);
 
     getVideoDetails(video.id).then(res => {
-      if (isMounted) {
+      if (isMounted && res) {
         setDetails(res);
         setSubscribed(isSubscribed(res.channelId));
         setLoading(false);
@@ -42,11 +46,11 @@ export default function WatchPage({ video, onSelectVideo }) {
     });
 
     getVideoComments(video.id).then(res => {
-      if (isMounted) setComments(res);
+      if (isMounted) setComments(res || []);
     });
 
     return () => { isMounted = false; };
-  }, [video]);
+  }, [video?.id]);
 
   if (!video) return null;
 
@@ -76,18 +80,30 @@ export default function WatchPage({ video, onSelectVideo }) {
     <div className="max-w-7xl mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
       {/* Left Column: Player & Video Info */}
       <div className="lg:col-span-2 space-y-5">
-        {/* Main Video Player with MediaSession Background Play */}
+        {/* Main Video Player with unique key for instant reset on video switch */}
         <VideoPlayer 
+          key={video.id}
           videoId={video.id} 
           title={video.title} 
           channelTitle={video.channelTitle} 
           thumbnail={video.thumbnail} 
         />
 
-        {/* Video Title */}
-        <h1 className="text-xl lg:text-2xl font-black text-[var(--text)] leading-snug">
-          {video.title}
-        </h1>
+        {/* Video Title & Minimize Button */}
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-xl lg:text-2xl font-black text-[var(--text)] leading-snug flex-1">
+            {video.title}
+          </h1>
+
+          <button
+            onClick={minimizePlayer}
+            title="Minimize to Floating Mini-Player"
+            className="p-2.5 rounded-2xl bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--border)] transition-all flex items-center gap-1.5 text-xs font-semibold flex-shrink-0 shadow-sm"
+          >
+            <Minimize2 size={16} />
+            <span className="hidden sm:inline">Mini Player</span>
+          </button>
+        </div>
 
         {/* Channel Info & Actions Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 py-3 border-y border-[var(--border)]">
@@ -202,7 +218,9 @@ export default function WatchPage({ video, onSelectVideo }) {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-[var(--text-3)] py-4 text-center">Comments loading...</p>
+              <p className="text-xs text-[var(--text-3)] py-4 text-center">
+                {loading ? 'Comments loading...' : 'No comments yet'}
+              </p>
             )}
           </div>
         </div>
@@ -218,7 +236,17 @@ export default function WatchPage({ video, onSelectVideo }) {
               <VideoCard key={rec.id} video={rec} onSelectVideo={onSelectVideo} />
             ))
           ) : (
-            <p className="text-xs text-[var(--text-3)]">Loading recommended videos...</p>
+            <div className="space-y-3 animate-pulse">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="w-32 h-20 bg-[var(--surface-2)] rounded-2xl flex-shrink-0" />
+                  <div className="space-y-2 flex-1 pt-1">
+                    <div className="h-3 bg-[var(--surface-2)] rounded w-full" />
+                    <div className="h-2.5 bg-[var(--surface-2)] rounded w-2/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

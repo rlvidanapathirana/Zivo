@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { RefreshCw, Sparkles, X } from 'lucide-react';
 
@@ -8,10 +8,15 @@ export default function UpdatePrompt() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegistered(r) {
-      console.log('Zivo SW registered:', r);
+      if (r) {
+        // Periodically check for new PWA app updates every 60 seconds
+        setInterval(() => {
+          r.update().catch(() => {});
+        }, 60 * 1000);
+      }
     },
     onRegisterError(error) {
-      console.error('Zivo SW registration error:', error);
+      console.warn('Zivo SW registration note:', error);
     },
   });
 

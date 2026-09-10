@@ -1,6 +1,92 @@
-// High-Performance YouTube Search & Data Service with Sri Lanka & Global Region Support
+// High-Performance YouTube Search, Data & Direct Stream Service with Sri Lanka & Global Region Support
 
 const cache = new Map();
+
+// High availability Invidious & Piped endpoints for direct ad-free streams & metadata
+const INVIDIOUS_INSTANCES = [
+  'https://inv.tux.pizza',
+  'https://invidious.nerdvpn.de',
+  'https://iv.melmac.space',
+  'https://invidious.drgns.space'
+];
+
+const PIPED_INSTANCES = [
+  'https://pipedapi.kavin.rocks',
+  'https://api.piped.private.coffee'
+];
+
+export async function getVideoStreams(videoId) {
+  if (!videoId) return null;
+  const cacheKey = `streams:${videoId}`;
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  // 1. Try Invidious Instances for Direct MP4 & Audio Streams
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const res = await fetch(`${instance}/api/v1/videos/${videoId}`, { 
+        signal: AbortSignal.timeout(3000) 
+      });
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Find best audio stream for pure background playback
+        const audioStreams = (data.adaptiveFormats || [])
+          .filter(f => f.type?.includes('audio') || f.container === 'm4a' || f.container === 'webm')
+          .sort((a, b) => (parseInt(b.bitrate) || 0) - (parseInt(a.bitrate) || 0));
+
+        // Find best combined video stream
+        const videoStreams = (data.formatStreams || [])
+          .sort((a, b) => (parseInt(b.resolution) || 0) - (parseInt(a.resolution) || 0));
+
+        const result = {
+          audioUrl: audioStreams[0]?.url || null,
+          videoUrl: videoStreams[0]?.url || null,
+          hlsUrl: data.hlsUrl || null,
+          title: data.title,
+          author: data.author,
+          duration: data.lengthSeconds,
+          isDirect: true
+        };
+
+        if (result.audioUrl || result.videoUrl) {
+          cache.set(cacheKey, result);
+          return result;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Try Piped API
+  for (const instance of PIPED_INSTANCES) {
+    try {
+      const res = await fetch(`${instance}/streams/${videoId}`, { 
+        signal: AbortSignal.timeout(3000) 
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const audioStreams = (data.audioStreams || []).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+        const videoStreams = (data.videoStreams || []).filter(v => !v.videoOnly).sort((a, b) => (parseInt(b.quality) || 0) - (parseInt(a.quality) || 0));
+
+        const result = {
+          audioUrl: audioStreams[0]?.url || null,
+          videoUrl: videoStreams[0]?.url || null,
+          hlsUrl: data.hls || null,
+          title: data.title,
+          author: data.uploader,
+          duration: data.duration,
+          isDirect: true
+        };
+
+        if (result.audioUrl || result.videoUrl) {
+          cache.set(cacheKey, result);
+          return result;
+        }
+      }
+    } catch (e) {}
+  }
+
+  return null;
+}
 
 export async function searchVideos(query) {
   if (!query || !query.trim()) return [];
@@ -182,36 +268,40 @@ export async function getSearchSuggestions(query) {
 }
 
 export async function getVideoDetails(videoId) {
-  try {
-    const res = await fetch(`https://inv.tux.pizza/api/v1/videos/${videoId}`, { signal: AbortSignal.timeout(3500) });
-    if (res.ok) {
-      const data = await res.json();
-      return {
-        id: data.videoId,
-        title: data.title,
-        description: data.description,
-        channelId: data.authorId,
-        channelTitle: data.author,
-        channelAvatar: data.authorThumbnails?.[0]?.url || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(data.author || 'channel')}`,
-        publishedText: data.publishedText,
-        viewCount: data.viewCount,
-        recommendedVideos: normalizeVideoList(data.recommendedVideos || []),
-        subCountText: data.subCountText || 'Subscriber count unavailable'
-      };
-    }
-  } catch (e) {}
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const res = await fetch(`${instance}/api/v1/videos/${videoId}`, { signal: AbortSignal.timeout(3500) });
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          id: data.videoId,
+          title: data.title,
+          description: data.description,
+          channelId: data.authorId,
+          channelTitle: data.author,
+          channelAvatar: data.authorThumbnails?.[0]?.url || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(data.author || 'channel')}`,
+          publishedText: data.publishedText,
+          viewCount: data.viewCount,
+          recommendedVideos: normalizeVideoList(data.recommendedVideos || []),
+          subCountText: data.subCountText || 'Subscriber count unavailable'
+        };
+      }
+    } catch (e) {}
+  }
 
   return getFallbackVideoDetails(videoId);
 }
 
 export async function getVideoComments(videoId) {
-  try {
-    const res = await fetch(`https://inv.tux.pizza/api/v1/comments/${videoId}`, { signal: AbortSignal.timeout(3500) });
-    if (res.ok) {
-      const data = await res.json();
-      return data.comments || [];
-    }
-  } catch (e) {}
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      const res = await fetch(`${instance}/api/v1/comments/${videoId}`, { signal: AbortSignal.timeout(3500) });
+      if (res.ok) {
+        const data = await res.json();
+        return data.comments || [];
+      }
+    } catch (e) {}
+  }
   return [];
 }
 

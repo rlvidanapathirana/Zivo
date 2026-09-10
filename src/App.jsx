@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { BraveShieldProvider } from './context/BraveShieldContext';
+import { PlayerProvider, usePlayer } from './context/PlayerContext';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import VideoCard from './components/VideoCard';
 import WatchPage from './components/WatchPage';
+import MiniPlayer from './components/MiniPlayer';
 import UpdatePrompt from './components/UpdatePrompt';
+import ShieldModal from './components/ShieldModal';
 import { getTrendingVideos, searchVideos } from './services/invidiousService';
 import { getHistory, getWatchLater, getLikedVideos, clearHistory } from './services/libraryService';
 import { Home, Flame, Compass, Bookmark, Clock, ThumbsUp, Trash2, Sparkles, RefreshCw } from 'lucide-react';
@@ -14,10 +17,11 @@ function ZivoApp() {
   const [currentTab, setCurrentTab] = useState('home');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [videos, setVideos] = useState([]);
-  const [activeVideo, setActiveVideo] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const { currentVideo, isMiniPlayer, playVideo, expandPlayer, minimizePlayer } = usePlayer();
 
   useEffect(() => {
     let isMounted = true;
@@ -53,20 +57,38 @@ function ZivoApp() {
   const handleSearch = (query) => {
     setSearchQuery(query);
     setCurrentTab('search');
+    if (currentVideo && !isMiniPlayer) {
+      minimizePlayer();
+    }
   };
 
   const handleSelectCategory = (cat) => {
     setSelectedCategory(cat);
     setCurrentTab('home');
+    if (currentVideo && !isMiniPlayer) {
+      minimizePlayer();
+    }
   };
 
   const handleSelectVideo = (video) => {
-    setActiveVideo(video);
+    playVideo(video, true);
     setCurrentTab('watch');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNavigate = (tab) => {
+    if (tab === 'watch') {
+      if (currentVideo) {
+        expandPlayer();
+        setCurrentTab('watch');
+      }
+      return;
+    }
+
+    if (currentTab === 'watch' && currentVideo) {
+      minimizePlayer();
+    }
+
     setCurrentTab(tab);
     if (tab === 'home') setSelectedCategory('All');
   };
@@ -74,6 +96,11 @@ function ZivoApp() {
   const handleClearHistory = () => {
     clearHistory();
     setVideos([]);
+  };
+
+  const handleExpandMiniPlayer = () => {
+    expandPlayer();
+    setCurrentTab('watch');
   };
 
   return (
@@ -100,9 +127,13 @@ function ZivoApp() {
 
         {/* Main Content Area */}
         <main className="flex-1 min-w-0 pb-24 lg:pb-12">
-          {/* Watch Page */}
-          {currentTab === 'watch' && activeVideo ? (
-            <WatchPage video={activeVideo} onSelectVideo={handleSelectVideo} />
+          {/* Watch Page (when on watch tab and not in mini-player mode) */}
+          {currentTab === 'watch' && currentVideo && !isMiniPlayer ? (
+            <WatchPage 
+              key={currentVideo.id}
+              video={currentVideo} 
+              onSelectVideo={handleSelectVideo} 
+            />
           ) : (
             <div className="max-w-7xl mx-auto p-4 lg:p-6 space-y-6 animate-fade-in">
               {/* Category Pills Bar */}
@@ -177,8 +208,29 @@ function ZivoApp() {
               )}
             </div>
           )}
+
+          {/* App Footer */}
+          <footer className="max-w-7xl mx-auto px-4 py-8 mt-12 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--text-3)] select-none">
+            <div className="flex items-center gap-1.5">
+              <span>Developed with ❤️ by</span>
+              <a
+                href="https://lakshan.netlify.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-purple-400 hover:text-purple-300 hover:underline transition-colors inline-flex items-center gap-1"
+              >
+                V.P.R. Lakshan Vidanapathirana
+              </a>
+            </div>
+            <p className="text-[11px] text-[var(--text-3)]">
+              Zivo — Ultra Fast Ad-Free Video Streaming
+            </p>
+          </footer>
         </main>
       </div>
+
+      {/* Floating Picture-in-Picture Mini-Player */}
+      <MiniPlayer onExpand={handleExpandMiniPlayer} />
 
       {/* Mobile Bottom Navigation Bar (Ultra Mobile Responsive) */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 h-16 bg-[var(--surface-header)] border-t border-[var(--border)] backdrop-blur-xl flex items-center justify-around px-2 lg:hidden shadow-2xl">
@@ -207,6 +259,9 @@ function ZivoApp() {
 
       {/* PWA Update Toast Notification with Refresh Button */}
       <UpdatePrompt />
+
+      {/* Real-time Brave Ad Shield Modal */}
+      <ShieldModal />
     </div>
   );
 }
@@ -215,7 +270,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <BraveShieldProvider>
-        <ZivoApp />
+        <PlayerProvider>
+          <ZivoApp />
+        </PlayerProvider>
       </BraveShieldProvider>
     </ThemeProvider>
   );

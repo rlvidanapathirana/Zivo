@@ -104,6 +104,21 @@ export default function Sidebar({ currentTab, onNavigate, onSelectCategory, isOp
             </div>
           )}
         </div>
+
+        {/* Sidebar Footer Link */}
+        <div className="pt-4 mt-6 border-t border-[var(--border)] text-[11px] text-[var(--text-3)]">
+          <p className="leading-relaxed">
+            Developed with ❤️ by{' '}
+            <a
+              href="https://lakshan.netlify.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-purple-400 hover:text-purple-300 hover:underline transition-colors block mt-0.5"
+            >
+              V.P.R. Lakshan Vidanapathirana
+            </a>
+          </p>
+        </div>
       </aside>
     </>
   );
