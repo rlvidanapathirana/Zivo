@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import VideoCard from './components/VideoCard';
 import WatchPage from './components/WatchPage';
+import UpdatePrompt from './components/UpdatePrompt';
 import { getTrendingVideos, searchVideos } from './services/invidiousService';
 import { getHistory, getWatchLater, getLikedVideos, clearHistory } from './services/libraryService';
 import { Home, Flame, Compass, Bookmark, Clock, ThumbsUp, Trash2, Sparkles, RefreshCw } from 'lucide-react';
@@ -25,7 +26,7 @@ function ZivoApp() {
       setLoading(true);
       try {
         if (currentTab === 'home' || currentTab === 'trending') {
-          const list = await getTrendingVideos('US', selectedCategory);
+          const list = await getTrendingVideos('LK', selectedCategory);
           if (isMounted) setVideos(list);
         } else if (currentTab === 'search') {
           const list = await searchVideos(searchQuery);
@@ -203,6 +204,9 @@ function ZivoApp() {
           );
         })}
       </nav>
+
+      {/* PWA Update Toast Notification with Refresh Button */}
+      <UpdatePrompt />
     </div>
   );
 }

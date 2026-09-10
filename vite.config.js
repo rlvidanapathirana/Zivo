@@ -3,16 +3,13 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-const isGithubActions = process.env.GITHUB_ACTIONS || false;
-const basePath = isGithubActions ? '/Zivo/' : './';
-
 export default defineConfig({
-  base: basePath,
+  base: './',
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'favicon.ico', 'icons/*.png'],
       devOptions: { enabled: true },
       workbox: {
@@ -36,8 +33,8 @@ export default defineConfig({
         background_color: '#0b0717',
         display: 'standalone',
         orientation: 'any',
-        start_url: basePath,
-        scope: basePath,
+        start_url: './',
+        scope: './',
         icons: [
           { src: 'icons/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
