@@ -3,16 +3,53 @@ import Plyr from 'plyr';
 import 'plyr/dist/plyr.css';
 import { getSponsorSegments } from '../services/sponsorBlockService';
 import { recordShieldEvent } from '../services/braveShieldService';
-import { Zap, ShieldCheck } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
-export default function VideoPlayer({ videoId, title }) {
+export default function VideoPlayer({ videoId, title, channelTitle, thumbnail }) {
   const [sponsorSegments, setSponsorSegments] = useState([]);
   const [sponsorToast, setSponsorToast] = useState(null);
   const containerRef = useRef(null);
   const plyrInstanceRef = useRef(null);
   const lastSkippedUUID = useRef(null);
 
-  // Fetch SponsorBlock segments for instant background skipping
+  // Background MediaSession API for Screen Off / Lock-Screen Playback
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: title || 'Zivo Audio Stream',
+        artist: channelTitle || 'Zivo Creator',
+        album: 'Zivo Ad-Free Video',
+        artwork: [
+          { src: thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`, sizes: '512x512', type: 'image/jpeg' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        plyrInstanceRef.current?.play();
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        plyrInstanceRef.current?.pause();
+      });
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (plyrInstanceRef.current && details.seekTime) {
+          plyrInstanceRef.current.currentTime = details.seekTime;
+        }
+      });
+    }
+  }, [videoId, title, channelTitle, thumbnail]);
+
+  // Prevent auto-pause on screen off / tab switch
+  useEffect(() => {
+    const handleVisibility = (e) => {
+      // Keep audio playing in background when screen turns off or tab changes
+      e.stopPropagation();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility, true);
+    return () => document.removeEventListener('visibilitychange', handleVisibility, true);
+  }, []);
+
+  // Fetch SponsorBlock segments
   useEffect(() => {
     let isMounted = true;
     getSponsorSegments(videoId).then(segments => {
@@ -21,7 +58,7 @@ export default function VideoPlayer({ videoId, title }) {
     return () => { isMounted = false; };
   }, [videoId]);
 
-  // Initialize Plyr Custom HTML5 Video Player with Ad-Block Parameters
+  // Initialize Plyr Custom HTML5 Video Player
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -62,28 +99,6 @@ export default function VideoPlayer({ videoId, title }) {
         plyrInstanceRef.current = null;
       }
     };
-  }, [videoId]);
-
-  // High-Frequency Ad Detector & Instant Skipper (Brave Engine)
-  useEffect(() => {
-    const adInterval = setInterval(() => {
-      const player = plyrInstanceRef.current;
-      if (!player) return;
-
-      try {
-        // Find iframe inside Plyr container
-        const iframe = containerRef.current?.querySelector('iframe');
-        if (iframe) {
-          // Send JS API commands to bypass YouTube ads instantly
-          iframe.contentWindow?.postMessage(
-            JSON.stringify({ event: 'command', func: 'setAdFlags', args: [0] }),
-            '*'
-          );
-        }
-      } catch (e) {}
-    }, 250);
-
-    return () => clearInterval(adInterval);
   }, [videoId]);
 
   // Monitor SponsorBlock segments for instant skipping

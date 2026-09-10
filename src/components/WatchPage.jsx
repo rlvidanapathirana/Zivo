@@ -11,7 +11,7 @@ import {
   toggleSubscription, 
   isSubscribed 
 } from '../services/libraryService';
-import { ThumbsUp, Bookmark, Share2, Check, ChevronDown, ChevronUp, MessageSquare, Zap } from 'lucide-react';
+import { ThumbsUp, Bookmark, Share2, Check, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 export default function WatchPage({ video, onSelectVideo }) {
   const [details, setDetails] = useState(null);
@@ -76,8 +76,13 @@ export default function WatchPage({ video, onSelectVideo }) {
     <div className="max-w-7xl mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
       {/* Left Column: Player & Video Info */}
       <div className="lg:col-span-2 space-y-5">
-        {/* Main Plyr Video Player */}
-        <VideoPlayer videoId={video.id} title={video.title} />
+        {/* Main Video Player with MediaSession Background Play */}
+        <VideoPlayer 
+          videoId={video.id} 
+          title={video.title} 
+          channelTitle={video.channelTitle} 
+          thumbnail={video.thumbnail} 
+        />
 
         {/* Video Title */}
         <h1 className="text-xl lg:text-2xl font-black text-[var(--text)] leading-snug">
