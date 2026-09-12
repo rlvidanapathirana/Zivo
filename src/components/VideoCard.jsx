@@ -64,7 +64,7 @@ export default function VideoCard({ video, onSelectVideo }) {
           </button>
           <button
             onClick={handleShare}
-            title="Copy YouTube Link"
+            title="Copy Zivo Video Link"
             className="p-2 rounded-xl bg-black/60 backdrop-blur-md text-white hover:bg-black/80 transition-colors"
           >
             {copied ? <Check size={14} className="text-emerald-400" /> : <Share2 size={14} />}

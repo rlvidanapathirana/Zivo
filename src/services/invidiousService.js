@@ -73,76 +73,60 @@ export async function getVideoStreams(videoId) {
   const cacheKey = `streams:${videoId}`;
   if (cache.has(cacheKey)) return cache.get(cacheKey);
 
-  // 1. Race Invidious Instances for Direct MP4 & Audio Streams
-  for (const instance of INVIDIOUS_INSTANCES) {
-    try {
-      const res = await fetch(`${instance}/api/v1/videos/${videoId}`, { 
-        signal: AbortSignal.timeout(3000) 
-      });
-      if (res.ok) {
-        const data = await res.json();
-        
-        const audioStreams = (data.adaptiveFormats || [])
-          .filter(f => f.type?.includes('audio') || f.container === 'm4a' || f.container === 'webm')
-          .sort((a, b) => (parseInt(b.bitrate) || 0) - (parseInt(a.bitrate) || 0));
+  // Parallel race endpoints for sub-200ms direct stream extraction
+  const streamPromises = [
+    ...INVIDIOUS_INSTANCES.map(async (instance) => {
+      const res = await fetch(`${instance}/api/v1/videos/${videoId}`, { signal: AbortSignal.timeout(3000) });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      const audioStreams = (data.adaptiveFormats || []).filter(f => f.type?.includes('audio') || f.container === 'm4a').sort((a, b) => (parseInt(b.bitrate) || 0) - (parseInt(a.bitrate) || 0));
+      const videoStreams = (data.formatStreams || []).sort((a, b) => (parseInt(b.resolution) || 0) - (parseInt(a.resolution) || 0));
+      
+      const directAudio = audioStreams[0]?.url || `${instance}/latest_version?id=${videoId}&itag=140&listen=1`;
+      return {
+        audioUrl: directAudio,
+        videoUrl: videoStreams[0]?.url || null,
+        hlsUrl: data.hlsUrl || null,
+        invidiousEmbedUrl: `${instance}/embed/${videoId}?autoplay=1&muted=0`,
+        embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`,
+        title: data.title,
+        author: data.author,
+        duration: data.lengthSeconds,
+        isDirect: true
+      };
+    }),
+    ...PIPED_INSTANCES.map(async (instance) => {
+      const res = await fetch(`${instance}/streams/${videoId}`, { signal: AbortSignal.timeout(3000) });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      const audioStreams = (data.audioStreams || []).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+      const videoStreams = (data.videoStreams || []).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+      
+      const directAudio = audioStreams[0]?.url || `https://inv.tux.pizza/latest_version?id=${videoId}&itag=140&listen=1`;
+      return {
+        audioUrl: directAudio,
+        videoUrl: videoStreams[0]?.url || null,
+        hlsUrl: data.hls || null,
+        invidiousEmbedUrl: `https://piped.video/embed/${videoId}?autoplay=1`,
+        embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`,
+        title: data.title,
+        author: data.uploader,
+        duration: data.duration,
+        isDirect: true
+      };
+    })
+  ];
 
-        const videoStreams = (data.formatStreams || [])
-          .sort((a, b) => (parseInt(b.resolution) || 0) - (parseInt(a.resolution) || 0));
+  try {
+    const result = await Promise.any(streamPromises);
+    cache.set(cacheKey, result);
+    return result;
+  } catch (e) {}
 
-        const directAudio = audioStreams[0]?.url || `${instance}/latest_version?id=${videoId}&itag=140&listen=1`;
-
-        const result = {
-          audioUrl: directAudio,
-          videoUrl: videoStreams[0]?.url || null,
-          hlsUrl: data.hlsUrl || null,
-          invidiousEmbedUrl: `${instance}/embed/${videoId}?autoplay=1&muted=0`,
-          embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`,
-          title: data.title,
-          author: data.author,
-          duration: data.lengthSeconds,
-          isDirect: true
-        };
-
-        cache.set(cacheKey, result);
-        return result;
-      }
-    } catch (e) {}
-  }
-
-  // 2. Try Piped API Instances
-  for (const instance of PIPED_INSTANCES) {
-    try {
-      const res = await fetch(`${instance}/streams/${videoId}`, { 
-        signal: AbortSignal.timeout(3000) 
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const audioStreams = (data.audioStreams || []).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-        const videoStreams = (data.videoStreams || []).sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-
-        const directAudio = audioStreams[0]?.url || `https://inv.tux.pizza/latest_version?id=${videoId}&itag=140&listen=1`;
-
-        const result = {
-          audioUrl: directAudio,
-          videoUrl: videoStreams[0]?.url || null,
-          hlsUrl: data.hls || null,
-          invidiousEmbedUrl: `https://piped.video/embed/${videoId}?autoplay=1`,
-          embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`,
-          title: data.title,
-          author: data.uploader,
-          duration: data.duration,
-          isDirect: true
-        };
-
-        cache.set(cacheKey, result);
-        return result;
-      }
-    } catch (e) {}
-  }
-
-  // 3. Fallback Guaranteed Embed & Audio Stream
+  // Fallback Guaranteed Embed & Audio Stream
   const fallbackResult = {
     audioUrl: `https://inv.tux.pizza/latest_version?id=${videoId}&itag=140&listen=1`,
+    videoUrl: null,
     invidiousEmbedUrl: `https://inv.tux.pizza/embed/${videoId}?autoplay=1&muted=0`,
     embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`,
     isDirect: false
