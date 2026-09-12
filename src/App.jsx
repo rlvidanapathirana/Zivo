@@ -74,6 +74,26 @@ function ZivoApp() {
   }, [currentTab, selectedCategory, searchQuery]);
 
   const handleSearch = (query) => {
+    if (!query) return;
+    
+    // Auto-detect YouTube URL or Zivo deep link
+    const match = query.match(/(?:v=|\/embed\/|\/v\/|vi\/|youtu\.be\/|\/watch\?v=|\/shorts\/)([a-zA-Z0-9_-]{11})/);
+    if (match && match[1]) {
+      const videoId = match[1];
+      getVideoDetails(videoId).then(v => {
+        if (v) {
+          playVideo({
+            id: videoId,
+            title: v.title || 'Playing Video',
+            channelTitle: v.channelTitle || 'YouTube Creator',
+            thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+          }, true);
+          setCurrentTab('watch');
+        }
+      });
+      return;
+    }
+
     setSearchQuery(query);
     setCurrentTab('search');
     if (currentVideo && !isMiniPlayer) {
@@ -188,6 +208,23 @@ function ZivoApp() {
                     {currentTab === 'search' ? `Results for "${searchQuery}"` : currentTab}
                   </h2>
                 </div>
+
+                {(currentTab === 'home' || currentTab === 'trending') && (
+                  <button
+                    onClick={() => {
+                      setLoading(true);
+                      getTrendingVideos('LK', selectedCategory).then(list => {
+                        setVideos(list);
+                        setLoading(false);
+                      });
+                    }}
+                    title="Load fresh live YouTube videos"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-[var(--surface-2)] text-purple-400 border border-purple-500/30 text-xs font-bold hover:bg-purple-600/20 transition-all shadow-sm active:scale-95"
+                  >
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                    <span>Refresh Feed</span>
+                  </button>
+                )}
 
                 {currentTab === 'history' && videos.length > 0 && (
                   <button

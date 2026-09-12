@@ -54,25 +54,17 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
     return () => { isMounted = false; };
   }, [videoId]);
 
+  const [isPiPWindowActive, setIsPiPWindowActive] = useState(false);
   const containerRef = useRef(null);
 
-  // Revolutionary Multi-Layer Native OS Picture-in-Picture Engine (Zero Error 153)
+  // Revolutionary Multi-Layer Native OS Picture-in-Picture Engine (Zero Black Screen, Zero Error 153)
   const handleTogglePiP = async () => {
     try {
-      // 1. Priority 1: Native HTML5 Video PiP (100% OS Level Floating Window)
-      if (videoRef.current && document.pictureInPictureEnabled) {
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
-        } else {
-          await videoRef.current.requestPictureInPicture();
-        }
-        return;
-      }
-
-      // 2. Priority 2: Document Picture-in-Picture API using Invidious VideoJS Embed (Bypasses YouTube Error 153)
+      // 1. Priority 1: Document Picture-in-Picture API (Chrome/Edge OS floating window outside tab)
       if ('documentPictureInPicture' in window) {
         if (window.documentPictureInPicture.window) {
           window.documentPictureInPicture.window.close();
+          setIsPiPWindowActive(false);
           return;
         }
 
@@ -80,6 +72,8 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
           width: 560,
           height: 315
         });
+
+        setIsPiPWindowActive(true);
 
         pipWindow.document.title = `${title || 'Zivo Video'} — Picture-in-Picture`;
         pipWindow.document.body.style.margin = '0';
@@ -89,8 +83,8 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
         pipWindow.document.body.style.justifyContent = 'center';
         pipWindow.document.body.style.overflow = 'hidden';
 
+        const cleanOrigin = window.location.origin || 'https://rlvidanapathirana.github.io';
         const streamSrc = directStream?.videoUrl;
-        const pipEmbedSrc = directStream?.invidiousEmbedUrl || `https://inv.tux.pizza/embed/${videoId}?autoplay=1`;
 
         if (streamSrc) {
           const v = pipWindow.document.createElement('video');
@@ -104,7 +98,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
           pipWindow.document.body.appendChild(v);
         } else {
           const iframe = pipWindow.document.createElement('iframe');
-          iframe.src = pipEmbedSrc;
+          iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1&origin=${encodeURIComponent(cleanOrigin)}`;
           iframe.style.width = '100vw';
           iframe.style.height = '100vh';
           iframe.style.border = 'none';
@@ -112,11 +106,25 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
           iframe.allowFullscreen = true;
           pipWindow.document.body.appendChild(iframe);
         }
+
+        pipWindow.addEventListener('pagehide', () => {
+          setIsPiPWindowActive(false);
+        });
         return;
       }
 
-      // 3. Priority 3: Standalone OS Pop-Out Window (Always On Top Floating Window)
-      const popSrc = directStream?.invidiousEmbedUrl || directStream?.embedUrl || `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`;
+      // 2. Priority 2: Native HTML5 Video PiP
+      if (videoRef.current && document.pictureInPictureEnabled) {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          await videoRef.current.requestPictureInPicture();
+        }
+        return;
+      }
+
+      // 3. Priority 3: Standalone OS Pop-Out Window
+      const popSrc = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`;
       window.open(
         popSrc,
         'ZivoFloatingPiP',
@@ -318,6 +326,28 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
         </div>
       )}
 
+      {/* OS Picture-in-Picture Active Placeholder Overlay */}
+      {isPiPWindowActive && (
+        <div className="absolute inset-0 z-30 bg-gradient-to-br from-purple-950 via-zinc-950 to-black flex flex-col items-center justify-center p-6 text-center space-y-3 animate-fade-in">
+          <div className="p-3.5 rounded-full bg-purple-600/30 border border-purple-500/50 text-purple-400 animate-pulse">
+            <PictureInPicture2 size={32} />
+          </div>
+          <h4 className="font-black text-white text-base">Playing in OS Floating Window</h4>
+          <p className="text-xs text-purple-300 max-w-sm">Video is currently playing in a floating Picture-in-Picture window on your screen.</p>
+          <button
+            onClick={() => {
+              if (window.documentPictureInPicture?.window) {
+                window.documentPictureInPicture.window.close();
+              }
+              setIsPiPWindowActive(false);
+            }}
+            className="px-5 py-2 rounded-full purple-gradient-btn text-white text-xs font-bold shadow-lg hover:scale-105 transition-transform"
+          >
+            Return Player to Tab
+          </button>
+        </div>
+      )}
+
       {/* Direct Native Video Tag if video stream present */}
       {directStream?.videoUrl ? (
         <video
@@ -327,7 +357,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
           autoPlay
           playsInline
           webkit-playsinline="true"
-          className={`w-full h-full object-contain bg-black transition-opacity duration-300 ${audioOnlyMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          className={`w-full h-full object-contain bg-black transition-opacity duration-300 ${(audioOnlyMode || isPiPWindowActive) ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
         />
@@ -338,7 +368,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
           ref={iframeRef}
           src={embedSrc}
           title={title || 'Zivo Video Player'}
-          className={`w-full h-full border-0 rounded-3xl transition-opacity duration-300 ${audioOnlyMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          className={`w-full h-full border-0 rounded-3xl transition-opacity duration-300 ${(audioOnlyMode || isPiPWindowActive) ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           onLoad={() => setIsPlaying(true)}
