@@ -68,9 +68,9 @@ export default function WatchPage({ video, onSelectVideo }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto p-2.5 sm:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 animate-fade-in">
       {/* Left Column: Player & Video Info */}
-      <div className="lg:col-span-2 space-y-5">
+      <div className="lg:col-span-2 space-y-4 sm:space-y-5">
         {/* Main Video Player or Floating Placeholder Banner */}
         {!isMiniPlayer ? (
           <VideoPlayer 
@@ -93,8 +93,8 @@ export default function WatchPage({ video, onSelectVideo }) {
         )}
 
         {/* Video Title & Minimize Button */}
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="text-xl lg:text-2xl font-black text-[var(--text)] leading-snug flex-1">
+        <div className="flex items-start justify-between gap-2.5">
+          <h1 className="text-base sm:text-xl lg:text-2xl font-black text-[var(--text)] leading-snug flex-1">
             {video.title}
           </h1>
 
@@ -102,9 +102,9 @@ export default function WatchPage({ video, onSelectVideo }) {
             <button
               onClick={minimizePlayer}
               title="Minimize to Floating Mini-Player"
-              className="p-2.5 rounded-2xl bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--border)] transition-all flex items-center gap-1.5 text-xs font-semibold flex-shrink-0 shadow-sm"
+              className="p-2 sm:p-2.5 rounded-2xl bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--border)] transition-all flex items-center gap-1.5 text-xs font-semibold flex-shrink-0 shadow-sm active:scale-95"
             >
-              <Minimize2 size={16} />
+              <Minimize2 size={15} />
               <span className="hidden sm:inline">Mini Player</span>
             </button>
           )}
