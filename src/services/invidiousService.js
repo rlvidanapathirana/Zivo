@@ -12,6 +12,27 @@ const INVIDIOUS_INSTANCES = [
   'https://yt.drgnz.club'
 ];
 
+let dynamicInvidiousInstances = [...INVIDIOUS_INSTANCES];
+
+// Auto-discover live healthy Invidious nodes from invidious.io official API
+export async function refreshInvidiousInstances() {
+  try {
+    const res = await fetch('https://api.invidious.io/instances.json', { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const data = await res.json();
+      const healthy = data
+        .filter(item => Array.isArray(item) && item[1]?.type === 'https' && item[1]?.api)
+        .map(item => item[1].uri)
+        .slice(0, 8);
+      if (healthy.length > 0) {
+        dynamicInvidiousInstances = [...new Set([...healthy, ...INVIDIOUS_INSTANCES])];
+      }
+    }
+  } catch (e) {}
+}
+
+refreshInvidiousInstances();
+
 const PIPED_INSTANCES = [
   'https://pipedapi.kavin.rocks',
   'https://api.piped.private.coffee',
