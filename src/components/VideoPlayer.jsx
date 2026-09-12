@@ -16,6 +16,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
   const [directStream, setDirectStream] = useState(null);
   const [showOverlay, setShowOverlay] = useState(true);
 
+  const videoRef = useRef(null);
   const iframeRef = useRef(null);
   const directAudioRef = useRef(null);
   const lastSkippedUUID = useRef(null);
@@ -53,6 +54,24 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
     return () => { isMounted = false; };
   }, [videoId]);
 
+  // Native Picture-in-Picture handler with fallback to floating player
+  const handleTogglePiP = async () => {
+    try {
+      if (videoRef.current && document.pictureInPictureEnabled) {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          await videoRef.current.requestPictureInPicture();
+        }
+      } else {
+        minimizePlayer();
+      }
+    } catch (e) {
+      console.warn('Native PiP not active, activating floating player:', e);
+      minimizePlayer();
+    }
+  };
+
   // MediaSession setup
   useEffect(() => {
     backgroundEngine.updateMediaSession({
@@ -65,28 +84,25 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
 
     backgroundEngine.registerPlayer({
       onPlay: () => {
-        if (directAudioRef.current && audioOnlyMode) {
-          directAudioRef.current.play().catch(() => {});
-        }
+        if (videoRef.current) videoRef.current.play().catch(() => {});
+        if (directAudioRef.current && audioOnlyMode) directAudioRef.current.play().catch(() => {});
         setIsPlaying(true);
       },
       onPause: () => {
-        if (directAudioRef.current) {
-          directAudioRef.current.pause();
-        }
+        if (videoRef.current) videoRef.current.pause();
+        if (directAudioRef.current) directAudioRef.current.pause();
         setIsPlaying(false);
       },
       onSeek: (time) => {
-        if (directAudioRef.current && audioOnlyMode) {
-          directAudioRef.current.currentTime = time;
-        }
+        if (videoRef.current) videoRef.current.currentTime = time;
+        if (directAudioRef.current) directAudioRef.current.currentTime = time;
       },
       onSkip: (delta) => {
-        if (directAudioRef.current) {
-          directAudioRef.current.currentTime = Math.max(0, directAudioRef.current.currentTime + delta);
-        }
+        const ref = videoRef.current || directAudioRef.current;
+        if (ref) ref.currentTime = Math.max(0, ref.currentTime + delta);
       },
       onStop: () => {
+        videoRef.current?.pause();
         directAudioRef.current?.pause();
         setIsPlaying(false);
       }
@@ -137,9 +153,9 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
       <div className={`absolute top-3 right-3 z-40 flex items-center gap-2 transition-opacity duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         {/* Picture in Picture Button */}
         <button
-          onClick={minimizePlayer}
+          onClick={handleTogglePiP}
           title="Picture-in-Picture Floating Mode"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md text-white/90 hover:bg-black/90 border border-white/20 transition-all shadow-md"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md text-white/90 hover:bg-black/90 border border-white/20 transition-all shadow-md active:scale-95"
         >
           <PictureInPicture2 size={14} className="text-purple-400" />
           <span className="hidden sm:inline">PiP Mode</span>
@@ -193,6 +209,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
           src={directStream.audioUrl}
           playsInline
           webkit-playsinline="true"
+          autoPlay={audioOnlyMode}
           className="hidden"
           onPlay={() => { setIsPlaying(true); backgroundEngine.onPlayStateChanged(true); }}
           onPause={() => { setIsPlaying(false); backgroundEngine.onPlayStateChanged(false); }}
@@ -236,22 +253,37 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
 
           <p className="text-[11px] text-zinc-400 flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-full border border-white/10">
             <Moon size={12} className="text-purple-400" />
-            <span>Screen-off background playback active. You can lock your device.</span>
+            <span>Screen-off background audio active. You can lock your device screen.</span>
           </p>
         </div>
       )}
 
-      {/* Ad-Free Privacy Video Stream Player Embed */}
-      <iframe
-        key={videoId}
-        ref={iframeRef}
-        src={embedSrc}
-        title={title || 'Zivo Video Player'}
-        className={`w-full h-full border-0 rounded-3xl transition-opacity duration-300 ${audioOnlyMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-        onLoad={() => setIsPlaying(true)}
-      />
+      {/* Direct Native Video Tag if video stream present */}
+      {directStream?.videoUrl ? (
+        <video
+          ref={videoRef}
+          src={directStream.videoUrl}
+          controls
+          autoPlay
+          playsInline
+          webkit-playsinline="true"
+          className={`w-full h-full object-contain bg-black transition-opacity duration-300 ${audioOnlyMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+        />
+      ) : (
+        /* Ad-Free Privacy Video Stream Player Embed Fallback */
+        <iframe
+          key={videoId}
+          ref={iframeRef}
+          src={embedSrc}
+          title={title || 'Zivo Video Player'}
+          className={`w-full h-full border-0 rounded-3xl transition-opacity duration-300 ${audioOnlyMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          onLoad={() => setIsPlaying(true)}
+        />
+      )}
     </div>
   );
 }

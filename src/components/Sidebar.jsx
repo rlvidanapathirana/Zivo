@@ -1,6 +1,8 @@
-import { Home, Flame, Music, Gamepad2, Cpu, Newspaper, Film, Bookmark, Clock, ThumbsUp } from 'lucide-react';
+import { Home, Flame, Music, Gamepad2, Cpu, Newspaper, Film, Bookmark, Clock, ThumbsUp, Download } from 'lucide-react';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 
 export default function Sidebar({ currentTab, onNavigate, onSelectCategory, isOpen, onClose }) {
+  const { isInstalled, promptInstall } = usePWAInstall();
 
   const mainNav = [
     { id: 'home', label: 'Home', icon: Home },
@@ -77,8 +79,18 @@ export default function Sidebar({ currentTab, onNavigate, onSelectCategory, isOp
           </div>
         </div>
 
-        {/* Sidebar Footer Link */}
-        <div className="pt-4 mt-6 border-t border-[var(--border)] text-[11px] text-[var(--text-3)]">
+        {/* Sidebar Footer Link & Install Button */}
+        <div className="pt-4 mt-6 border-t border-[var(--border)] space-y-3 text-[11px] text-[var(--text-3)]">
+          {!isInstalled && (
+            <button
+              onClick={promptInstall}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl purple-gradient-btn text-white text-xs font-bold shadow-lg shadow-purple-600/30 hover:scale-102 transition-transform"
+            >
+              <Download size={15} />
+              <span>Install Zivo App</span>
+            </button>
+          )}
+
           <p className="leading-relaxed">
             Developed with ❤️ by{' '}
             <a

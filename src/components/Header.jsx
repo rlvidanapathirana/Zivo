@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import { getSearchSuggestions } from '../services/invidiousService';
-import { Search, Sun, Moon, Play, Menu, X, Clock, Bookmark, ThumbsUp, ArrowLeft } from 'lucide-react';
+import { Search, Sun, Moon, Play, Menu, X, Clock, Bookmark, ThumbsUp, ArrowLeft, Download } from 'lucide-react';
 import ShieldButton from './ShieldButton';
 
 export default function Header({ onSearch, onSelectCategory, onNavigate, currentTab, toggleSidebar }) {
   const { theme, toggleTheme } = useTheme();
+  const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -212,6 +214,18 @@ export default function Header({ onSearch, onSelectCategory, onNavigate, current
         >
           <Clock size={20} />
         </button>
+
+        {/* Install App PWA Button */}
+        {!isInstalled && (
+          <button
+            onClick={promptInstall}
+            title="Install Zivo App"
+            className="flex items-center gap-1 px-3 py-2 rounded-2xl purple-gradient-btn text-white text-xs font-bold transition-transform hover:scale-105 shadow-md shadow-purple-600/30"
+          >
+            <Download size={15} />
+            <span className="hidden sm:inline">Install App</span>
+          </button>
+        )}
 
         {/* Theme Switcher */}
         <button
