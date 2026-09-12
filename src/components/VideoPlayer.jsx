@@ -374,7 +374,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
         onPause={() => { setIsPlaying(false); backgroundEngine.onPlayStateChanged(false); }}
       />
 
-      {/* Audio-Only / Screen-Off Mode Visualization View */}
+      {/* Audio-Only / Screen-Off Mode YouTube Music Visualization View */}
       {audioOnlyMode && (
         <div className="absolute inset-0 z-30 bg-gradient-to-br from-purple-950 via-zinc-950 to-black flex flex-col items-center justify-center p-6 text-center space-y-4 animate-fade-in">
           <div className="relative">
@@ -395,6 +395,12 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
             <p className="text-xs text-purple-300 mt-0.5">{channelTitle}</p>
           </div>
 
+          {/* YouTube Music HQ Audio Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-xs font-bold">
+            <Headphones size={13} className="text-purple-400" />
+            <span>🎵 YouTube Music HQ Audio Stream (160kbps Opus / AAC)</span>
+          </div>
+
           {/* Audio Visualizer Waves */}
           <div className="flex items-center gap-1.5 h-6">
             {[40, 75, 100, 60, 90, 45, 80, 50, 95, 70, 30].map((h, i) => (
@@ -411,7 +417,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
 
           <p className="text-[11px] text-zinc-400 flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-full border border-white/10">
             <Moon size={12} className="text-purple-400" />
-            <span>Screen-off background audio active. You can lock your device screen.</span>
+            <span>Screen-off YouTube Music background audio active. Lock your phone screen anytime.</span>
           </p>
         </div>
       )}
