@@ -54,20 +54,70 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
     return () => { isMounted = false; };
   }, [videoId]);
 
-  // Native Picture-in-Picture handler with fallback to floating player
+  const containerRef = useRef(null);
+
+  // Real Native OS Picture-in-Picture handler (Outside Browser Tab)
   const handleTogglePiP = async () => {
     try {
+      // 1. Try Document Picture-in-Picture API (Chrome/Edge OS floating window outside tab)
+      if ('documentPictureInPicture' in window) {
+        if (window.documentPictureInPicture.window) {
+          window.documentPictureInPicture.window.close();
+          return;
+        }
+
+        const pipWindow = await window.documentPictureInPicture.requestWindow({
+          width: 560,
+          height: 315
+        });
+
+        // Copy styles to Document PiP Window
+        [...document.styleSheets].forEach((styleSheet) => {
+          try {
+            const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
+            const style = document.createElement('style');
+            style.textContent = cssRules;
+            pipWindow.document.head.appendChild(style);
+          } catch (e) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.type = styleSheet.type;
+            link.href = styleSheet.href;
+            pipWindow.document.head.appendChild(link);
+          }
+        });
+
+        // Move container element into OS Picture-in-Picture window
+        const playerElement = containerRef.current;
+        if (playerElement) {
+          pipWindow.document.body.appendChild(playerElement);
+          pipWindow.document.body.style.margin = '0';
+          pipWindow.document.body.style.backgroundColor = '#000';
+
+          pipWindow.addEventListener('pagehide', () => {
+            const hostContainer = document.getElementById(`zivo-player-host-${videoId}`);
+            if (hostContainer && playerElement) {
+              hostContainer.appendChild(playerElement);
+            }
+          });
+        }
+        return;
+      }
+
+      // 2. Try HTML5 Video Native PiP
       if (videoRef.current && document.pictureInPictureEnabled) {
         if (document.pictureInPictureElement) {
           await document.exitPictureInPicture();
         } else {
           await videoRef.current.requestPictureInPicture();
         }
-      } else {
-        minimizePlayer();
+        return;
       }
+
+      // 3. In-App Floating MiniPlayer Fallback
+      minimizePlayer();
     } catch (e) {
-      console.warn('Native PiP not active, activating floating player:', e);
+      console.warn('OS PiP failed, activating in-app floating player:', e);
       minimizePlayer();
     }
   };
@@ -140,15 +190,17 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
     setAudioOnlyMode(!audioOnlyMode);
   };
 
-  const embedSrc = directStream?.embedUrl || `https://inv.tux.pizza/embed/${videoId}?autoplay=1&muted=0`;
+  const embedSrc = directStream?.embedUrl || `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`;
 
   return (
-    <div 
-      onMouseMove={handleUserActivity}
-      onTouchStart={handleUserActivity}
-      onMouseLeave={() => isPlaying && setShowOverlay(false)}
-      className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black border border-[var(--border-strong)] shadow-2xl purple-glow group"
-    >
+    <div id={`zivo-player-host-${videoId}`} className="w-full h-full">
+      <div 
+        ref={containerRef}
+        onMouseMove={handleUserActivity}
+        onTouchStart={handleUserActivity}
+        onMouseLeave={() => isPlaying && setShowOverlay(false)}
+        className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black border border-[var(--border-strong)] shadow-2xl purple-glow group"
+      >
       {/* Top Floating Shields, PiP & Status Overlay (Auto-Hiding) */}
       {!isMini && (
         <div className={`absolute top-3 right-3 z-40 flex items-center gap-2 transition-opacity duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -286,6 +338,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
           onLoad={() => setIsPlaying(true)}
         />
       )}
+      </div>
     </div>
   );
 }
