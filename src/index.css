@@ -5,61 +5,61 @@
   --font-display: 'Plus Jakarta Sans', sans-serif;
 
   --animate-spin-slow: spin 12s linear infinite;
-  --animate-fade-in: fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  --animate-slide-up: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fade-in: fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-up: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
   @keyframes fade-in {
-    from { opacity: 0; transform: translateY(6px) scale(0.99); }
+    from { opacity: 0; transform: translateY(4px) scale(0.99); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
 
   @keyframes slide-up {
-    from { transform: translateY(16px); opacity: 0; }
+    from { transform: translateY(12px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
   }
 }
 
-/* ─── Ultra Premium Purple Theme Tokens ───────────────────────── */
+/* ─── Modern YouTube-Style Dark Theme System ───────────────────────── */
 :root {
-  --background: #f5f3ff;
+  --background: #f8fafc;
   --surface: #ffffff;
-  --surface-2: #ede9fe;
-  --surface-header: rgba(255, 255, 255, 0.9);
+  --surface-2: #f1f5f9;
+  --surface-header: rgba(255, 255, 255, 0.92);
   --surface-card: #ffffff;
   --surface-modal: #ffffff;
   
-  --primary: #7c3aed;
-  --primary-hover: #6d28d9;
-  --accent: #a855f7;
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --accent: #ec4899;
   
   --text: #0f172a;
   --text-2: #475569;
   --text-3: #94a3b8;
   
-  --border: #e9d5ff;
-  --border-strong: #d8b4fe;
-  --border-modal: rgba(216, 180, 254, 0.8);
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-modal: rgba(203, 213, 225, 0.8);
 }
 
 .dark {
-  --background: #0b0717;
-  --surface: #130d25;
-  --surface-2: #1c1438;
-  --surface-header: rgba(19, 13, 37, 0.88);
-  --surface-card: #130d25;
-  --surface-modal: #17102e;
+  --background: #0f0f0f;
+  --surface: #18181b;
+  --surface-2: #27272a;
+  --surface-header: rgba(15, 15, 15, 0.92);
+  --surface-card: #18181b;
+  --surface-modal: #1c1c21;
   
-  --primary: #8b5cf6;
-  --primary-hover: #a855f7;
-  --accent: #c084fc;
+  --primary: #a855f7;
+  --primary-hover: #c084fc;
+  --accent: #f472b6;
   
-  --text: #f8fafc;
-  --text-2: #a78bfa;
-  --text-3: #6b7280;
+  --text: #f4f4f5;
+  --text-2: #a1a1aa;
+  --text-3: #71717a;
   
-  --border: rgba(139, 92, 246, 0.18);
-  --border-strong: rgba(168, 85, 247, 0.35);
-  --border-modal: rgba(168, 85, 247, 0.3);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-modal: rgba(255, 255, 255, 0.14);
 }
 
 body {
@@ -74,7 +74,7 @@ body {
 
 /* Glassmorphism & Neon Glow Utilities */
 .purple-glow {
-  box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.35);
+  box-shadow: 0 0 30px -5px rgba(168, 85, 247, 0.3);
 }
 
 .purple-gradient-text {
@@ -91,13 +91,16 @@ body {
   background: linear-gradient(135deg, #6d28d9 0%, #7e22ce 50%, #a855f7 100%);
 }
 
-/* Hide YouTube logos & watermarks in player */
+/* Hide YouTube branding & ads overlays in player */
 .ytp-watermark, 
 .ytp-youtube-button, 
 .ytp-impression-link, 
 .ytp-title-link,
 .ytp-title,
 .ytp-share-button,
+.ytp-pause-overlay,
+.ytp-scroll-min,
+.ytp-paid-content-overlay,
 a[href*="youtube.com"],
 .ytp-[class*="logo"] {
   display: none !important;
@@ -117,7 +120,7 @@ a[href*="youtube.com"],
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(168, 85, 247, 0.3);
   border-radius: 9999px;
 }
 

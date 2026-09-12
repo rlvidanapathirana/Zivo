@@ -7,12 +7,15 @@ const INVIDIOUS_INSTANCES = [
   'https://inv.tux.pizza',
   'https://invidious.nerdvpn.de',
   'https://iv.melmac.space',
-  'https://invidious.drgns.space'
+  'https://invidious.drgns.space',
+  'https://invidious.flokinet.to',
+  'https://yt.drgnz.club'
 ];
 
 const PIPED_INSTANCES = [
   'https://pipedapi.kavin.rocks',
-  'https://api.piped.private.coffee'
+  'https://api.piped.private.coffee',
+  'https://pipedapi.mha.fi'
 ];
 
 export async function getVideoStreams(videoId) {
@@ -42,13 +45,14 @@ export async function getVideoStreams(videoId) {
           audioUrl: audioStreams[0]?.url || null,
           videoUrl: videoStreams[0]?.url || null,
           hlsUrl: data.hlsUrl || null,
+          embedUrl: `${instance}/embed/${videoId}?autoplay=1`,
           title: data.title,
           author: data.author,
           duration: data.lengthSeconds,
           isDirect: true
         };
 
-        if (result.audioUrl || result.videoUrl) {
+        if (result.audioUrl || result.videoUrl || result.embedUrl) {
           cache.set(cacheKey, result);
           return result;
         }
@@ -71,13 +75,14 @@ export async function getVideoStreams(videoId) {
           audioUrl: audioStreams[0]?.url || null,
           videoUrl: videoStreams[0]?.url || null,
           hlsUrl: data.hls || null,
+          embedUrl: `https://piped.video/embed/${videoId}`,
           title: data.title,
           author: data.uploader,
           duration: data.duration,
           isDirect: true
         };
 
-        if (result.audioUrl || result.videoUrl) {
+        if (result.audioUrl || result.videoUrl || result.embedUrl) {
           cache.set(cacheKey, result);
           return result;
         }
@@ -85,7 +90,10 @@ export async function getVideoStreams(videoId) {
     } catch (e) {}
   }
 
-  return null;
+  return {
+    embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3`,
+    isDirect: false
+  };
 }
 
 export async function searchVideos(query) {
@@ -96,7 +104,30 @@ export async function searchVideos(query) {
     return cache.get(`search:${q}`);
   }
 
-  // 1. Try YouTube InnerTube API with Sri Lanka (LK) & global locale context
+  // 1. Failover Public Invidious / Piped APIs (fastest & bypass CORS)
+  const FAILOVER_APIS = [
+    `https://inv.tux.pizza/api/v1/search?q=${encodeURIComponent(query)}`,
+    `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(query)}`,
+    `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(query)}&filter=all`,
+    `https://api.piped.private.coffee/search?q=${encodeURIComponent(query)}&filter=all`
+  ];
+
+  for (const apiUrl of FAILOVER_APIS) {
+    try {
+      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(3500) });
+      if (res.ok) {
+        const data = await res.json();
+        const items = data.items || data;
+        const normalized = normalizeVideoList(items);
+        if (normalized.length > 0) {
+          cache.set(`search:${q}`, normalized);
+          return normalized;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Try YouTube InnerTube API with Sri Lanka (LK) & global locale context
   try {
     const res = await fetch('https://www.youtube.com/youtubei/v1/search', {
       method: 'POST',
@@ -145,31 +176,7 @@ export async function searchVideos(query) {
         return parsed;
       }
     }
-  } catch (err) {
-    console.warn('InnerTube search fetch error, trying failover endpoints...', err);
-  }
-
-  // 2. Failover: Public APIs
-  const FAILOVER_APIS = [
-    `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(query)}&filter=all`,
-    `https://inv.tux.pizza/api/v1/search?q=${encodeURIComponent(query)}`,
-    `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(query)}`
-  ];
-
-  for (const apiUrl of FAILOVER_APIS) {
-    try {
-      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(3500) });
-      if (res.ok) {
-        const data = await res.json();
-        const items = data.items || data;
-        const normalized = normalizeVideoList(items);
-        if (normalized.length > 0) {
-          cache.set(`search:${q}`, normalized);
-          return normalized;
-        }
-      }
-    } catch (e) {}
-  }
+  } catch (err) {}
 
   return getFallbackSearch(query);
 }

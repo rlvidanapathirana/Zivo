@@ -19,7 +19,8 @@ export function PlayerProvider({ children }) {
     // Add to history
     addToHistory(video);
 
-    setCurrentVideo(video);
+    // Force fresh state reference
+    setCurrentVideo({ ...video });
     setIsPlaying(true);
     if (openWatch) {
       setIsMiniPlayer(false);

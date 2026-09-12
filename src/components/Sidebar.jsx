@@ -1,8 +1,6 @@
 import { Home, Flame, Music, Gamepad2, Cpu, Newspaper, Film, Bookmark, Clock, ThumbsUp } from 'lucide-react';
-import { getSubscriptions } from '../services/libraryService';
 
 export default function Sidebar({ currentTab, onNavigate, onSelectCategory, isOpen, onClose }) {
-  const subscriptions = getSubscriptions();
 
   const mainNav = [
     { id: 'home', label: 'Home', icon: Home },
@@ -77,32 +75,6 @@ export default function Sidebar({ currentTab, onNavigate, onSelectCategory, isOp
               );
             })}
           </div>
-
-          {/* Subscribed Channels */}
-          {subscriptions.length > 0 && (
-            <div className="space-y-2 pt-4 border-t border-[var(--border)]">
-              <h4 className="px-3 text-xs font-bold uppercase tracking-wider text-[var(--text-3)] flex items-center justify-between">
-                <span>Subscriptions</span>
-                <span className="px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[10px] text-purple-400 font-bold">{subscriptions.length}</span>
-              </h4>
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {subscriptions.map(sub => (
-                  <div
-                    key={sub.channelId}
-                    className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-[var(--surface-2)] cursor-pointer text-xs font-medium text-[var(--text)] transition-colors"
-                  >
-                    <img 
-                      src={sub.channelAvatar} 
-                      alt={sub.channelTitle} 
-                      className="w-6 h-6 rounded-full object-cover border border-[var(--border)]"
-                      onError={e => { e.target.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${sub.channelId}`; }}
-                    />
-                    <span className="truncate">{sub.channelTitle}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Sidebar Footer Link */}

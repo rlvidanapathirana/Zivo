@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { getSearchSuggestions } from '../services/invidiousService';
-import { Search, Sun, Moon, Play, Menu, X, Clock, Bookmark, ThumbsUp } from 'lucide-react';
+import { Search, Sun, Moon, Play, Menu, X, Clock, Bookmark, ThumbsUp, ArrowLeft } from 'lucide-react';
 import ShieldButton from './ShieldButton';
 
 export default function Header({ onSearch, onSelectCategory, onNavigate, currentTab, toggleSidebar }) {
@@ -9,7 +9,9 @@ export default function Header({ onSearch, onSelectCategory, onNavigate, current
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const searchRef = useRef(null);
+  const mobileInputRef = useRef(null);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -36,10 +38,17 @@ export default function Header({ onSearch, onSelectCategory, onNavigate, current
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (mobileSearchOpen && mobileInputRef.current) {
+      mobileInputRef.current.focus();
+    }
+  }, [mobileSearchOpen]);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (query.trim()) {
       setShowSuggestions(false);
+      setMobileSearchOpen(false);
       onSearch(query.trim());
     }
   };
@@ -47,13 +56,64 @@ export default function Header({ onSearch, onSelectCategory, onNavigate, current
   const handleSelectSuggestion = (sug) => {
     setQuery(sug);
     setShowSuggestions(false);
+    setMobileSearchOpen(false);
     onSearch(sug);
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full h-16 bg-[var(--surface-header)] backdrop-blur-xl border-b border-[var(--border)] px-4 flex items-center justify-between gap-3 sm:gap-4 transition-colors shadow-sm">
+    <header className="sticky top-0 z-40 w-full h-16 bg-[var(--surface-header)] backdrop-blur-xl border-b border-[var(--border)] px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4 transition-colors shadow-sm">
+      {/* Mobile Search Overlay Bar */}
+      {mobileSearchOpen ? (
+        <div className="absolute inset-0 z-50 bg-[var(--surface-header)] backdrop-blur-2xl px-3 flex items-center gap-2 animate-fade-in">
+          <button
+            onClick={() => setMobileSearchOpen(false)}
+            aria-label="Back"
+            className="p-2 rounded-2xl text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+          >
+            <ArrowLeft size={22} />
+          </button>
+          
+          <form onSubmit={handleSearchSubmit} className="flex-1 relative flex items-center">
+            <input
+              ref={mobileInputRef}
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search YouTube videos on Zivo..."
+              className="w-full h-11 pl-10 pr-9 rounded-full bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text)] placeholder-[var(--text-3)] text-sm focus:outline-none focus:border-purple-500"
+            />
+            <Search size={16} className="absolute left-3.5 text-purple-400" />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute right-3 p-1 rounded-full text-[var(--text-3)]"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </form>
+
+          {/* Suggestions Dropdown for Mobile */}
+          {suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 bg-[var(--surface-modal)] border-b border-[var(--border-modal)] shadow-2xl overflow-hidden z-50">
+              {suggestions.map((sug, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleSelectSuggestion(sug)}
+                  className="flex items-center gap-3 px-5 py-3 text-sm border-b border-[var(--border)] hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] cursor-pointer text-[var(--text)]"
+                >
+                  <Search size={14} className="text-purple-400" />
+                  <span>{sug}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+
       {/* Left section: Logo & Drawer toggle */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <button
           onClick={toggleSidebar}
           aria-label="Toggle menu"
@@ -64,19 +124,19 @@ export default function Header({ onSearch, onSelectCategory, onNavigate, current
 
         <div 
           onClick={() => onNavigate('home')} 
-          className="flex items-center gap-2.5 cursor-pointer group select-none"
+          className="flex items-center gap-2 cursor-pointer group select-none"
         >
-          <div className="w-10 h-10 rounded-2xl purple-gradient-btn flex items-center justify-center shadow-lg shadow-purple-600/30 group-hover:scale-105 transition-transform duration-300">
-            <Play size={20} className="fill-white text-white ml-0.5" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl purple-gradient-btn flex items-center justify-center shadow-lg shadow-purple-600/30 group-hover:scale-105 transition-transform duration-300">
+            <Play size={18} className="fill-white text-white ml-0.5" />
           </div>
-          <span className="text-2xl font-black tracking-tight purple-gradient-text">
+          <span className="text-xl sm:text-2xl font-black tracking-tight purple-gradient-text">
             Zivo
           </span>
         </div>
       </div>
 
-      {/* Middle section: Fast Search Bar */}
-      <div ref={searchRef} className="relative flex-1 max-w-2xl">
+      {/* Middle section: Fast Search Bar (Desktop / Tablet) */}
+      <div ref={searchRef} className="hidden md:block relative flex-1 max-w-2xl">
         <form onSubmit={handleSearchSubmit} className="relative flex items-center">
           <input
             type="text"
@@ -115,8 +175,17 @@ export default function Header({ onSearch, onSelectCategory, onNavigate, current
         )}
       </div>
 
-      {/* Right section: Shortcuts, Shield & Theme Switcher */}
-      <div className="flex items-center gap-1.5">
+      {/* Right section: Shortcuts, Shield, Mobile Search & Theme Switcher */}
+      <div className="flex items-center gap-1">
+        {/* Mobile Search Button */}
+        <button
+          onClick={() => setMobileSearchOpen(true)}
+          aria-label="Open search"
+          className="md:hidden p-2.5 rounded-2xl text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-all"
+        >
+          <Search size={20} className="text-purple-400" />
+        </button>
+
         {/* Real-time Brave Ad Shield */}
         <ShieldButton />
 

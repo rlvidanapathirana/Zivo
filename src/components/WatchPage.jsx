@@ -7,9 +7,7 @@ import {
   toggleLikeVideo, 
   isVideoLiked, 
   toggleWatchLater, 
-  isInWatchLater, 
-  toggleSubscription, 
-  isSubscribed 
+  isInWatchLater
 } from '../services/libraryService';
 import { usePlayer } from '../context/PlayerContext';
 import { ThumbsUp, Bookmark, Share2, Check, ChevronDown, ChevronUp, MessageSquare, Minimize2 } from 'lucide-react';
@@ -22,7 +20,6 @@ export default function WatchPage({ video, onSelectVideo }) {
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [subscribed, setSubscribed] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -40,7 +37,6 @@ export default function WatchPage({ video, onSelectVideo }) {
     getVideoDetails(video.id).then(res => {
       if (isMounted && res) {
         setDetails(res);
-        setSubscribed(isSubscribed(res.channelId));
         setLoading(false);
       }
     });
@@ -62,12 +58,6 @@ export default function WatchPage({ video, onSelectVideo }) {
   const handleSaveToggle = () => {
     const newState = toggleWatchLater(video);
     setSaved(newState);
-  };
-
-  const handleSubscribeToggle = () => {
-    if (!details) return;
-    const newState = toggleSubscription({ channelId: details.channelId, channelTitle: details.channelTitle, channelAvatar: details.channelAvatar });
-    setSubscribed(newState);
   };
 
   const handleShare = () => {
@@ -120,17 +110,6 @@ export default function WatchPage({ video, onSelectVideo }) {
               </h3>
               <p className="text-xs text-[var(--text-3)]">{details?.subCountText || 'YouTube Creator'}</p>
             </div>
-
-            <button
-              onClick={handleSubscribeToggle}
-              className={`ml-2 px-5 py-2 rounded-full text-xs font-bold transition-all shadow-md ${
-                subscribed 
-                  ? 'bg-[var(--surface-2)] text-[var(--text)] border border-[var(--border)]' 
-                  : 'purple-gradient-btn text-white shadow-purple-600/30'
-              }`}
-            >
-              {subscribed ? 'Subscribed' : 'Subscribe'}
-            </button>
           </div>
 
           {/* Action Buttons: Like, Save, Share */}
