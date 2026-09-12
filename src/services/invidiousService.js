@@ -145,21 +145,25 @@ export async function searchVideos(query, forceFresh = false) {
     return cache.get(cacheKey);
   }
 
+  // Format queries for space-separated and plus-separated APIs
+  const encodedSpace = encodeURIComponent(q);
+  const encodedPlus = encodeURIComponent(q).replace(/%20/g, '+');
+
   const searchUrls = [
-    `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(q)}&filter=all`,
-    `https://api.piped.private.coffee/search?q=${encodeURIComponent(q)}&filter=all`,
-    `https://pipedapi.mha.fi/search?q=${encodeURIComponent(q)}&filter=all`,
-    `https://pipedapi.colby.cloud/search?q=${encodeURIComponent(q)}&filter=all`,
-    `https://inv.tux.pizza/api/v1/search?q=${encodeURIComponent(q)}`,
-    `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(q)}`,
-    `https://iv.melmac.space/api/v1/search?q=${encodeURIComponent(q)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent('https://www.youtube.com/results?search_query=' + encodeURIComponent(q))}`
+    `https://pipedapi.kavin.rocks/search?q=${encodedSpace}&filter=videos`,
+    `https://api.piped.private.coffee/search?q=${encodedSpace}&filter=videos`,
+    `https://pipedapi.mha.fi/search?q=${encodedSpace}&filter=videos`,
+    `https://pipedapi.colby.cloud/search?q=${encodedSpace}&filter=videos`,
+    `https://inv.tux.pizza/api/v1/search?q=${encodedSpace}&type=video`,
+    `https://invidious.nerdvpn.de/api/v1/search?q=${encodedSpace}&type=video`,
+    `https://iv.melmac.space/api/v1/search?q=${encodedSpace}&type=video`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent('https://www.youtube.com/results?search_query=' + encodedPlus)}`
   ];
 
   // Race all 8 endpoints in parallel for sub-300ms live YouTube search results
   const promises = searchUrls.map(async (url) => {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
       if (!res.ok) throw new Error('Failed response');
 
       if (url.includes('allorigins.win')) {
@@ -167,8 +171,18 @@ export async function searchVideos(query, forceFresh = false) {
         const match = html.match(/var ytInitialData = ({.*?});<\/script>/s) || html.match(/ytInitialData"\s*:\s*({.*?});/s);
         if (match && match[1]) {
           const data = JSON.parse(match[1]);
-          const contents = data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents || [];
-          const normalized = normalizeVideoList(contents);
+          // Multi-word queries (3+ words) put videos in multiple sections/shelves
+          const sections = data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || [];
+          let extractedItems = [];
+          
+          for (const sec of sections) {
+            const items = sec?.itemSectionRenderer?.contents || [];
+            if (Array.isArray(items) && items.length > 0) {
+              extractedItems = extractedItems.concat(items);
+            }
+          }
+
+          const normalized = normalizeVideoList(extractedItems);
           if (normalized.length > 0) return normalized;
         }
       } else {
@@ -187,12 +201,14 @@ export async function searchVideos(query, forceFresh = false) {
     return results;
   } catch (err) {}
 
-  // Dynamic search fallback filtering catalog
+  // Dynamic multi-word search fallback filtering catalog
   const allCurated = Object.values(CURATED_CATALOG).flat();
-  const filtered = allCurated.filter(v => 
-    v.title.toLowerCase().includes(q.toLowerCase()) || 
-    v.channelTitle.toLowerCase().includes(q.toLowerCase())
-  );
+  const searchWords = q.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+  
+  const filtered = allCurated.filter(v => {
+    const combined = `${v.title} ${v.channelTitle}`.toLowerCase();
+    return searchWords.some(word => combined.includes(word));
+  });
   
   const result = filtered.length > 0 ? normalizeVideoList(filtered) : normalizeVideoList(CURATED_CATALOG['All']);
   if (!forceFresh) cache.set(cacheKey, result);
