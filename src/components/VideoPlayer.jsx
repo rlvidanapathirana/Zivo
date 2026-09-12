@@ -7,7 +7,7 @@ import { useBraveShield } from '../context/BraveShieldContext';
 import { usePlayer } from '../context/PlayerContext';
 import { Zap, ShieldCheck, Headphones, Moon, Radio, PictureInPicture2 } from 'lucide-react';
 
-export default function VideoPlayer({ videoId, title, channelTitle, thumbnail }) {
+export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, isMini }) {
   const { prefs, trackEvent, openModal } = useBraveShield();
   const { isPlaying, setIsPlaying, audioOnlyMode, setAudioOnlyMode, minimizePlayer } = usePlayer();
   const [sponsorSegments, setSponsorSegments] = useState([]);
@@ -115,7 +115,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
 
   // Shield telemetry
   useEffect(() => {
-    if (prefs.enabled) {
+    if (prefs.enabled && !isMini) {
       recordShieldEvent('ad', 1, { label: 'Blocked YouTube Video Pre-roll Ads' });
       recordShieldEvent('tracker', 2, { label: 'Filtered Telemetry Pings' });
       
@@ -123,7 +123,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
       const timer = setTimeout(() => setAdBlockedToast(false), 3000);
       return () => clearTimeout(timer);
     }
-  }, [videoId, prefs.enabled]);
+  }, [videoId, prefs.enabled, isMini]);
 
   // SponsorBlock setup
   useEffect(() => {
@@ -140,7 +140,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
     setAudioOnlyMode(!audioOnlyMode);
   };
 
-  const embedSrc = directStream?.embedUrl || `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`;
+  const embedSrc = directStream?.embedUrl || `https://inv.tux.pizza/embed/${videoId}?autoplay=1&muted=0`;
 
   return (
     <div 
@@ -150,41 +150,43 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
       className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black border border-[var(--border-strong)] shadow-2xl purple-glow group"
     >
       {/* Top Floating Shields, PiP & Status Overlay (Auto-Hiding) */}
-      <div className={`absolute top-3 right-3 z-40 flex items-center gap-2 transition-opacity duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {/* Picture in Picture Button */}
-        <button
-          onClick={handleTogglePiP}
-          title="Picture-in-Picture Floating Mode"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md text-white/90 hover:bg-black/90 border border-white/20 transition-all shadow-md active:scale-95"
-        >
-          <PictureInPicture2 size={14} className="text-purple-400" />
-          <span className="hidden sm:inline">PiP Mode</span>
-        </button>
+      {!isMini && (
+        <div className={`absolute top-3 right-3 z-40 flex items-center gap-2 transition-opacity duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          {/* Picture in Picture Button */}
+          <button
+            onClick={handleTogglePiP}
+            title="Picture-in-Picture Floating Mode"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md text-white/90 hover:bg-black/90 border border-white/20 transition-all shadow-md active:scale-95"
+          >
+            <PictureInPicture2 size={14} className="text-purple-400" />
+            <span className="hidden sm:inline">PiP Mode</span>
+          </button>
 
-        {/* Background Audio Mode Quick Toggle */}
-        <button
-          onClick={toggleAudioMode}
-          title="Toggle Screen-Off Background Audio Mode"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md transition-all shadow-md ${
-            audioOnlyMode
-              ? 'bg-purple-600 text-white shadow-purple-600/50 ring-2 ring-purple-400'
-              : 'bg-black/70 text-white/90 hover:bg-black/90 border border-white/20'
-          }`}
-        >
-          <Headphones size={13} />
-          <span>{audioOnlyMode ? 'Audio Mode' : 'Screen-Off Mode'}</span>
-        </button>
+          {/* Background Audio Mode Quick Toggle */}
+          <button
+            onClick={toggleAudioMode}
+            title="Toggle Screen-Off Background Audio Mode"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md transition-all shadow-md ${
+              audioOnlyMode
+                ? 'bg-purple-600 text-white shadow-purple-600/50 ring-2 ring-purple-400'
+                : 'bg-black/70 text-white/90 hover:bg-black/90 border border-white/20'
+            }`}
+          >
+            <Headphones size={13} />
+            <span>{audioOnlyMode ? 'Audio Mode' : 'Screen-Off Mode'}</span>
+          </button>
 
-        {/* Shield Mini Indicator */}
-        <button
-          onClick={openModal}
-          title="Protected by Zivo Ad Shield"
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-black/70 backdrop-blur-md text-emerald-400 border border-emerald-500/30 text-xs font-semibold hover:bg-black/90 transition-colors shadow-md"
-        >
-          <ShieldCheck size={14} className="text-emerald-400" />
-          <span className="text-[10px] text-white">Shield Active</span>
-        </button>
-      </div>
+          {/* Shield Mini Indicator */}
+          <button
+            onClick={openModal}
+            title="Protected by Zivo Ad Shield"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-black/70 backdrop-blur-md text-emerald-400 border border-emerald-500/30 text-xs font-semibold hover:bg-black/90 transition-colors shadow-md"
+          >
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span className="text-[10px] text-white">Shield Active</span>
+          </button>
+        </div>
+      )}
 
       {/* Ad Blocked Notification Toast */}
       {adBlockedToast && prefs.enabled && (

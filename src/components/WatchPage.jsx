@@ -13,7 +13,7 @@ import { usePlayer } from '../context/PlayerContext';
 import { ThumbsUp, Bookmark, Share2, Check, ChevronDown, ChevronUp, MessageSquare, Minimize2 } from 'lucide-react';
 
 export default function WatchPage({ video, onSelectVideo }) {
-  const { minimizePlayer } = usePlayer();
+  const { isMiniPlayer, minimizePlayer, expandPlayer } = usePlayer();
   const [details, setDetails] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,14 +71,26 @@ export default function WatchPage({ video, onSelectVideo }) {
     <div className="max-w-7xl mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
       {/* Left Column: Player & Video Info */}
       <div className="lg:col-span-2 space-y-5">
-        {/* Main Video Player with unique key for instant reset on video switch */}
-        <VideoPlayer 
-          key={video.id}
-          videoId={video.id} 
-          title={video.title} 
-          channelTitle={video.channelTitle} 
-          thumbnail={video.thumbnail} 
-        />
+        {/* Main Video Player or Floating Placeholder Banner */}
+        {!isMiniPlayer ? (
+          <VideoPlayer 
+            key={video.id}
+            videoId={video.id} 
+            title={video.title} 
+            channelTitle={video.channelTitle} 
+            thumbnail={video.thumbnail} 
+          />
+        ) : (
+          <div className="aspect-video w-full rounded-3xl bg-zinc-900 border border-purple-500/30 flex flex-col items-center justify-center p-6 text-center space-y-3 shadow-xl">
+            <p className="text-sm font-semibold text-purple-300">Video is playing in Floating Mini-Player mode</p>
+            <button
+              onClick={expandPlayer}
+              className="px-5 py-2.5 rounded-full purple-gradient-btn text-white text-xs font-bold shadow-lg shadow-purple-600/30 hover:scale-105 transition-transform"
+            >
+              Restore Full Screen Player
+            </button>
+          </div>
+        )}
 
         {/* Video Title & Minimize Button */}
         <div className="flex items-start justify-between gap-3">
@@ -86,14 +98,16 @@ export default function WatchPage({ video, onSelectVideo }) {
             {video.title}
           </h1>
 
-          <button
-            onClick={minimizePlayer}
-            title="Minimize to Floating Mini-Player"
-            className="p-2.5 rounded-2xl bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--border)] transition-all flex items-center gap-1.5 text-xs font-semibold flex-shrink-0 shadow-sm"
-          >
-            <Minimize2 size={16} />
-            <span className="hidden sm:inline">Mini Player</span>
-          </button>
+          {!isMiniPlayer && (
+            <button
+              onClick={minimizePlayer}
+              title="Minimize to Floating Mini-Player"
+              className="p-2.5 rounded-2xl bg-[var(--surface-2)] text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--border)] transition-all flex items-center gap-1.5 text-xs font-semibold flex-shrink-0 shadow-sm"
+            >
+              <Minimize2 size={16} />
+              <span className="hidden sm:inline">Mini Player</span>
+            </button>
+          )}
         </div>
 
         {/* Channel Info & Actions Bar */}

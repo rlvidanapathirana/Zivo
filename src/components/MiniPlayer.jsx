@@ -1,38 +1,32 @@
 import { usePlayer } from '../context/PlayerContext';
 import { useBraveShield } from '../context/BraveShieldContext';
-import { Play, Pause, Maximize2, X, ShieldCheck, Radio } from 'lucide-react';
+import { Maximize2, X, ShieldCheck } from 'lucide-react';
+import VideoPlayer from './VideoPlayer';
 
 export default function MiniPlayer({ onExpand }) {
-  const { currentVideo, isPlaying, isMiniPlayer, togglePlayPause, closePlayer } = usePlayer();
+  const { currentVideo, isMiniPlayer, closePlayer } = usePlayer();
   const { prefs } = useBraveShield();
 
   if (!currentVideo || !isMiniPlayer) return null;
 
   return (
-    <div className="fixed bottom-20 lg:bottom-6 right-3 lg:right-6 z-50 w-80 max-w-[calc(100vw-1.5rem)] bg-[var(--surface-modal)] border border-purple-500/40 rounded-3xl p-3 shadow-2xl backdrop-blur-2xl animate-slide-up purple-glow select-none">
-      <div className="flex items-center gap-3">
-        {/* Clickable Thumbnail to Expand */}
-        <div 
-          onClick={onExpand}
-          className="relative w-16 h-12 rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer group"
-        >
-          <img
-            src={currentVideo.thumbnail || `https://i.ytimg.com/vi/${currentVideo.id}/hqdefault.jpg`}
-            alt={currentVideo.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-          />
-          {isPlaying && (
-            <span className="absolute bottom-1 right-1 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
-            </span>
-          )}
-        </div>
+    <div className="fixed bottom-20 lg:bottom-6 right-3 lg:right-6 z-50 w-80 sm:w-96 max-w-[calc(100vw-1.5rem)] bg-[var(--surface-modal)] border border-purple-500/50 rounded-3xl p-2.5 shadow-2xl backdrop-blur-2xl animate-slide-up purple-glow select-none">
+      {/* Floating Aspect Video Stream Box */}
+      <div className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-lg border border-white/10 bg-black">
+        <VideoPlayer
+          videoId={currentVideo.id}
+          title={currentVideo.title}
+          channelTitle={currentVideo.channelTitle}
+          thumbnail={currentVideo.thumbnail}
+          isMini={true}
+        />
+      </div>
 
-        {/* Video Info (Click to Expand) */}
+      {/* Floating Control Bar below live video */}
+      <div className="flex items-center justify-between gap-2 px-2 pt-2">
         <div 
           onClick={onExpand}
-          className="flex-1 min-w-0 cursor-pointer space-y-0.5"
+          className="flex-1 min-w-0 cursor-pointer space-y-0.5 group"
         >
           <h4 className="text-xs font-bold text-[var(--text)] line-clamp-1 group-hover:text-purple-400 transition-colors">
             {currentVideo.title}
@@ -48,29 +42,20 @@ export default function MiniPlayer({ onExpand }) {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-1">
-          {/* Play/Pause Button */}
-          <button
-            onClick={togglePlayPause}
-            className="p-2 rounded-xl purple-gradient-btn text-white shadow-md shadow-purple-600/30 hover:scale-105 transition-transform"
-            title={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isPlaying ? <Pause size={14} className="fill-white" /> : <Play size={14} className="fill-white ml-0.5" />}
-          </button>
-
-          {/* Expand Button */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Expand to Full Watch Page Button */}
           <button
             onClick={onExpand}
-            className="p-2 rounded-xl text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+            className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-all shadow-sm"
             title="Expand to Full Player"
           >
             <Maximize2 size={15} />
           </button>
 
-          {/* Close Button */}
+          {/* Close Player Button */}
           <button
             onClick={closePlayer}
-            className="p-1.5 rounded-xl text-[var(--text-3)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            className="p-2 rounded-xl text-[var(--text-3)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
             title="Close Player"
           >
             <X size={15} />
