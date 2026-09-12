@@ -67,47 +67,65 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
   const mobilePipVideoRef = useRef(null);
 
   // Cross-Platform Mobile & Desktop Picture-in-Picture Engine
+  // Native Browser Picture-in-Picture Engine for Mobile & Desktop
   const handleTogglePiP = async () => {
     try {
-      // 1. Priority 1: Direct Native Video Tag PiP (Android Chrome & iOS Safari & Desktop)
-      const activeVideo = videoRef.current;
-      if (activeVideo && (document.pictureInPictureEnabled || activeVideo.webkitSupportsPresentationMode)) {
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
-        } else if (activeVideo.requestPictureInPicture) {
-          await activeVideo.requestPictureInPicture();
-        } else if (activeVideo.webkitSetPresentationMode) {
-          activeVideo.webkitSetPresentationMode('picture-in-picture');
-        }
+      // Exit PiP if browser PiP is currently active
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
         return;
       }
 
-      // 2. Priority 2: Dynamic Native Video Stream PiP for Mobile Browsers
       const streamUrl = directStream?.videoUrl || `https://inv.tux.pizza/latest_version?id=${videoId}&itag=18`;
-      if (streamUrl && (document.pictureInPictureEnabled || 'webkitSetPresentationMode' in HTMLVideoElement.prototype)) {
-        let pipVideo = mobilePipVideoRef.current;
-        if (!pipVideo) {
-          pipVideo = document.createElement('video');
-          pipVideo.src = streamUrl;
-          pipVideo.playsInline = true;
-          pipVideo.setAttribute('webkit-playsinline', 'true');
-          pipVideo.style.position = 'fixed';
-          pipVideo.style.bottom = '0';
-          pipVideo.style.right = '0';
-          pipVideo.style.width = '1px';
-          pipVideo.style.height = '1px';
-          pipVideo.style.opacity = '0.01';
-          pipVideo.style.pointerEvents = 'none';
-          document.body.appendChild(pipVideo);
-          mobilePipVideoRef.current = pipVideo;
-        }
 
-        await pipVideo.play();
-        if (pipVideo.requestPictureInPicture) {
-          await pipVideo.requestPictureInPicture();
-        } else if (pipVideo.webkitSetPresentationMode) {
-          pipVideo.webkitSetPresentationMode('picture-in-picture');
+      // 1. Try active mounted video element if present
+      if (videoRef.current) {
+        if (!videoRef.current.src) videoRef.current.src = streamUrl;
+        await videoRef.current.play().catch(() => {});
+        if (videoRef.current.requestPictureInPicture) {
+          await videoRef.current.requestPictureInPicture();
+          return;
+        } else if (videoRef.current.webkitSetPresentationMode) {
+          videoRef.current.webkitSetPresentationMode('picture-in-picture');
+          return;
         }
+      }
+
+      // 2. Fallback: Create and mount native HTML5 video stream element for PiP
+      let pipElement = mobilePipVideoRef.current;
+      if (!pipElement) {
+        pipElement = document.createElement('video');
+        pipElement.src = streamUrl;
+        pipElement.playsInline = true;
+        pipElement.setAttribute('webkit-playsinline', 'true');
+        pipElement.style.position = 'fixed';
+        pipElement.style.top = '0';
+        pipElement.style.left = '0';
+        pipElement.style.width = '1px';
+        pipElement.style.height = '1px';
+        pipElement.style.opacity = '0.01';
+        pipElement.style.pointerEvents = 'none';
+        document.body.appendChild(pipElement);
+        mobilePipVideoRef.current = pipElement;
+      } else if (pipElement.src !== streamUrl) {
+        pipElement.src = streamUrl;
+      }
+
+      // Ensure video metadata is loaded before requesting PiP
+      if (pipElement.readyState < 1) {
+        await new Promise((resolve) => {
+          pipElement.addEventListener('loadedmetadata', resolve, { once: true });
+          setTimeout(resolve, 1200);
+        });
+      }
+
+      await pipElement.play().catch(() => {});
+
+      if (pipElement.requestPictureInPicture) {
+        await pipElement.requestPictureInPicture();
+        return;
+      } else if (pipElement.webkitSetPresentationMode) {
+        pipElement.webkitSetPresentationMode('picture-in-picture');
         return;
       }
 
