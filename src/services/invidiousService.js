@@ -95,6 +95,7 @@ export async function getVideoStreams(videoId) {
           audioUrl: directAudio,
           videoUrl: videoStreams[0]?.url || null,
           hlsUrl: data.hlsUrl || null,
+          invidiousEmbedUrl: `${instance}/embed/${videoId}?autoplay=1&muted=0`,
           embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`,
           title: data.title,
           author: data.author,
@@ -125,6 +126,7 @@ export async function getVideoStreams(videoId) {
           audioUrl: directAudio,
           videoUrl: videoStreams[0]?.url || null,
           hlsUrl: data.hls || null,
+          invidiousEmbedUrl: `https://piped.video/embed/${videoId}?autoplay=1`,
           embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`,
           title: data.title,
           author: data.uploader,
@@ -141,6 +143,7 @@ export async function getVideoStreams(videoId) {
   // 3. Fallback Guaranteed Embed & Audio Stream
   const fallbackResult = {
     audioUrl: `https://inv.tux.pizza/latest_version?id=${videoId}&itag=140&listen=1`,
+    invidiousEmbedUrl: `https://inv.tux.pizza/embed/${videoId}?autoplay=1&muted=0`,
     embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`,
     isDirect: false
   };
