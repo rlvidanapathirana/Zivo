@@ -64,21 +64,54 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
 
   const [isPiPWindowActive, setIsPiPWindowActive] = useState(false);
   const containerRef = useRef(null);
+  const mobilePipVideoRef = useRef(null);
 
-  // Revolutionary Multi-Layer Native OS Picture-in-Picture Engine (Zero Error 153)
+  // Cross-Platform Mobile & Desktop Picture-in-Picture Engine
   const handleTogglePiP = async () => {
     try {
-      // 1. Priority 1: Native HTML5 Video PiP (100% OS Level Floating Window - Zero Error 153)
-      if (videoRef.current && document.pictureInPictureEnabled) {
+      // 1. Priority 1: Direct Native Video Tag PiP (Android Chrome & iOS Safari & Desktop)
+      const activeVideo = videoRef.current;
+      if (activeVideo && (document.pictureInPictureEnabled || activeVideo.webkitSupportsPresentationMode)) {
         if (document.pictureInPictureElement) {
           await document.exitPictureInPicture();
-        } else {
-          await videoRef.current.requestPictureInPicture();
+        } else if (activeVideo.requestPictureInPicture) {
+          await activeVideo.requestPictureInPicture();
+        } else if (activeVideo.webkitSetPresentationMode) {
+          activeVideo.webkitSetPresentationMode('picture-in-picture');
         }
         return;
       }
 
-      // 2. Priority 2: Document Picture-in-Picture API with Open-Source Player (Bypasses YouTube Error 153)
+      // 2. Priority 2: Dynamic Native Video Stream PiP for Mobile Browsers
+      const streamUrl = directStream?.videoUrl || `https://inv.tux.pizza/latest_version?id=${videoId}&itag=18`;
+      if (streamUrl && (document.pictureInPictureEnabled || 'webkitSetPresentationMode' in HTMLVideoElement.prototype)) {
+        let pipVideo = mobilePipVideoRef.current;
+        if (!pipVideo) {
+          pipVideo = document.createElement('video');
+          pipVideo.src = streamUrl;
+          pipVideo.playsInline = true;
+          pipVideo.setAttribute('webkit-playsinline', 'true');
+          pipVideo.style.position = 'fixed';
+          pipVideo.style.bottom = '0';
+          pipVideo.style.right = '0';
+          pipVideo.style.width = '1px';
+          pipVideo.style.height = '1px';
+          pipVideo.style.opacity = '0.01';
+          pipVideo.style.pointerEvents = 'none';
+          document.body.appendChild(pipVideo);
+          mobilePipVideoRef.current = pipVideo;
+        }
+
+        await pipVideo.play();
+        if (pipVideo.requestPictureInPicture) {
+          await pipVideo.requestPictureInPicture();
+        } else if (pipVideo.webkitSetPresentationMode) {
+          pipVideo.webkitSetPresentationMode('picture-in-picture');
+        }
+        return;
+      }
+
+      // 3. Priority 3: Desktop Document Picture-in-Picture API
       if ('documentPictureInPicture' in window) {
         if (window.documentPictureInPicture.window) {
           window.documentPictureInPicture.window.close();
@@ -131,18 +164,27 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
         return;
       }
 
-      // 3. Priority 3: Standalone OS Pop-Out Window
-      const popSrc = directStream?.invidiousEmbedUrl || `https://inv.tux.pizza/embed/${videoId}?autoplay=1`;
-      window.open(
-        popSrc,
-        'ZivoFloatingPiP',
-        'width=560,height=315,top=100,left=100,resizable=yes,scrollbars=no,status=no'
-      );
+      // 4. Priority 4: Fallback to In-App Floating MiniPlayer for Mobile
+      minimizePlayer();
     } catch (e) {
-      console.warn('OS PiP failed, activating in-app floating player:', e);
+      console.warn('OS PiP fallback activated:', e);
       minimizePlayer();
     }
   };
+
+  // Mobile Screen-Off & Tab Switch Protection
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        if ((audioOnlyMode || isPlaying) && directAudioRef.current) {
+          directAudioRef.current.play().catch(() => {});
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [audioOnlyMode, isPlaying]);
 
   // MediaSession setup
   useEffect(() => {
@@ -157,7 +199,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
     backgroundEngine.registerPlayer({
       onPlay: () => {
         if (videoRef.current) videoRef.current.play().catch(() => {});
-        if (directAudioRef.current && audioOnlyMode) directAudioRef.current.play().catch(() => {});
+        if (directAudioRef.current) directAudioRef.current.play().catch(() => {});
         setIsPlaying(true);
       },
       onPause: () => {
@@ -302,19 +344,17 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
         </div>
       )}
 
-      {/* Pure Direct HTML5 Audio Stream Element (for background audio mode) */}
-      {directStream?.audioUrl && (
-        <audio
-          ref={directAudioRef}
-          src={directStream.audioUrl}
-          playsInline
-          webkit-playsinline="true"
-          autoPlay={audioOnlyMode}
-          className="hidden"
-          onPlay={() => { setIsPlaying(true); backgroundEngine.onPlayStateChanged(true); }}
-          onPause={() => { setIsPlaying(false); backgroundEngine.onPlayStateChanged(false); }}
-        />
-      )}
+      {/* Pure Direct HTML5 Audio Stream Element (for background audio mode & screen-off protection) */}
+      <audio
+        ref={directAudioRef}
+        src={directStream?.audioUrl || `https://inv.tux.pizza/latest_version?id=${videoId}&itag=140&listen=1`}
+        playsInline
+        webkit-playsinline="true"
+        autoPlay={audioOnlyMode}
+        className="hidden"
+        onPlay={() => { setIsPlaying(true); backgroundEngine.onPlayStateChanged(true); }}
+        onPause={() => { setIsPlaying(false); backgroundEngine.onPlayStateChanged(false); }}
+      />
 
       {/* Audio-Only / Screen-Off Mode Visualization View */}
       {audioOnlyMode && (
