@@ -5,19 +5,39 @@ import { getVideoStreams } from '../services/invidiousService';
 import { backgroundEngine } from '../services/backgroundPlaybackService';
 import { useBraveShield } from '../context/BraveShieldContext';
 import { usePlayer } from '../context/PlayerContext';
-import { Zap, ShieldCheck, Headphones, Moon, Radio } from 'lucide-react';
+import { Zap, ShieldCheck, Headphones, Moon, Radio, PictureInPicture2 } from 'lucide-react';
 
 export default function VideoPlayer({ videoId, title, channelTitle, thumbnail }) {
   const { prefs, trackEvent, openModal } = useBraveShield();
-  const { isPlaying, setIsPlaying, audioOnlyMode, setAudioOnlyMode } = usePlayer();
+  const { isPlaying, setIsPlaying, audioOnlyMode, setAudioOnlyMode, minimizePlayer } = usePlayer();
   const [sponsorSegments, setSponsorSegments] = useState([]);
   const [sponsorToast, setSponsorToast] = useState(null);
   const [adBlockedToast, setAdBlockedToast] = useState(false);
   const [directStream, setDirectStream] = useState(null);
+  const [showOverlay, setShowOverlay] = useState(true);
 
   const iframeRef = useRef(null);
   const directAudioRef = useRef(null);
   const lastSkippedUUID = useRef(null);
+  const overlayTimerRef = useRef(null);
+
+  // Auto-hide top overlay pills on inactivity
+  const handleUserActivity = () => {
+    setShowOverlay(true);
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowOverlay(false);
+      }
+    }, 2500);
+  };
+
+  useEffect(() => {
+    handleUserActivity();
+    return () => {
+      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    };
+  }, [videoId, isPlaying]);
 
   // Fetch Direct Streams & Ad-Free Embed URL
   useEffect(() => {
@@ -107,9 +127,24 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
   const embedSrc = directStream?.embedUrl || `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1`;
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black border border-[var(--border-strong)] shadow-2xl purple-glow group">
-      {/* Top Floating Shields & Status Overlay */}
-      <div className="absolute top-3 right-3 z-40 flex items-center gap-2">
+    <div 
+      onMouseMove={handleUserActivity}
+      onTouchStart={handleUserActivity}
+      onMouseLeave={() => isPlaying && setShowOverlay(false)}
+      className="relative aspect-video w-full overflow-hidden rounded-3xl bg-black border border-[var(--border-strong)] shadow-2xl purple-glow group"
+    >
+      {/* Top Floating Shields, PiP & Status Overlay (Auto-Hiding) */}
+      <div className={`absolute top-3 right-3 z-40 flex items-center gap-2 transition-opacity duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        {/* Picture in Picture Button */}
+        <button
+          onClick={minimizePlayer}
+          title="Picture-in-Picture Floating Mode"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md text-white/90 hover:bg-black/90 border border-white/20 transition-all shadow-md"
+        >
+          <PictureInPicture2 size={14} className="text-purple-400" />
+          <span className="hidden sm:inline">PiP Mode</span>
+        </button>
+
         {/* Background Audio Mode Quick Toggle */}
         <button
           onClick={toggleAudioMode}
@@ -137,7 +172,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail })
 
       {/* Ad Blocked Notification Toast */}
       {adBlockedToast && prefs.enabled && (
-        <div className="absolute top-3 left-3 z-40 flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-emerald-600/90 text-white font-semibold text-xs shadow-lg backdrop-blur-md animate-fade-in">
+        <div className={`absolute top-3 left-3 z-40 flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-emerald-600/90 text-white font-semibold text-xs shadow-lg backdrop-blur-md transition-opacity duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <ShieldCheck size={15} className="text-white" />
           <span>Ad-Free Stream Protected</span>
         </div>

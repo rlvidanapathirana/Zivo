@@ -61,7 +61,8 @@ export default function WatchPage({ video, onSelectVideo }) {
   };
 
   const handleShare = () => {
-    navigator.clipboard.writeText(`https://youtu.be/${video.id}`);
+    const shareUrl = `${window.location.origin}${window.location.pathname}?v=${video.id}`;
+    navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

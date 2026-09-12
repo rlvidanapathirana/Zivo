@@ -151,7 +151,32 @@ export async function searchVideos(query) {
     return cache.get(`search:${q}`);
   }
 
-  // 1. Failover Public Invidious / Piped APIs
+  // 1. Try Direct YouTube Live Search via CORS Proxies (100% Accurate YouTube Results)
+  const proxySearchUrls = [
+    `https://corsproxy.io/?${encodeURIComponent('https://www.youtube.com/results?search_query=' + encodeURIComponent(query))}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent('https://www.youtube.com/results?search_query=' + encodeURIComponent(query))}`
+  ];
+
+  for (const proxyUrl of proxySearchUrls) {
+    try {
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        const html = await res.text();
+        const match = html.match(/var ytInitialData = ({.*?});<\/script>/s) || html.match(/ytInitialData"\s*:\s*({.*?});/s);
+        if (match && match[1]) {
+          const data = JSON.parse(match[1]);
+          const contents = data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents || [];
+          const normalized = normalizeVideoList(contents);
+          if (normalized.length > 0) {
+            cache.set(`search:${q}`, normalized);
+            return normalized;
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Failover Public Invidious / Piped APIs
   const FAILOVER_APIS = [
     `https://inv.tux.pizza/api/v1/search?q=${encodeURIComponent(query)}`,
     `https://invidious.nerdvpn.de/api/v1/search?q=${encodeURIComponent(query)}`,
@@ -175,7 +200,7 @@ export async function searchVideos(query) {
     } catch (e) {}
   }
 
-  // 2. Try YouTube InnerTube API
+  // 3. Try YouTube InnerTube API
   try {
     const res = await fetch('https://www.youtube.com/youtubei/v1/search', {
       method: 'POST',
@@ -204,7 +229,7 @@ export async function searchVideos(query) {
     }
   } catch (err) {}
 
-  // 3. Fallback: Filter Curated Catalog
+  // 4. Fallback: Filter Curated Catalog
   const allCurated = Object.values(CURATED_CATALOG).flat();
   const filtered = allCurated.filter(v => 
     v.title.toLowerCase().includes(q) || 

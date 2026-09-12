@@ -14,7 +14,8 @@ export default function VideoCard({ video, onSelectVideo }) {
 
   const handleShare = (e) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(`https://youtu.be/${video.id}`);
+    const shareUrl = `${window.location.origin}${window.location.pathname}?v=${video.id}`;
+    navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

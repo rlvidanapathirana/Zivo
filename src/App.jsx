@@ -9,7 +9,7 @@ import WatchPage from './components/WatchPage';
 import MiniPlayer from './components/MiniPlayer';
 import UpdatePrompt from './components/UpdatePrompt';
 import ShieldModal from './components/ShieldModal';
-import { getTrendingVideos, searchVideos } from './services/invidiousService';
+import { getTrendingVideos, searchVideos, getVideoDetails } from './services/invidiousService';
 import { getHistory, getWatchLater, getLikedVideos, clearHistory } from './services/libraryService';
 import { Home, Flame, Compass, Bookmark, Clock, ThumbsUp, Trash2, Sparkles, RefreshCw } from 'lucide-react';
 
@@ -22,6 +22,25 @@ function ZivoApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { currentVideo, isMiniPlayer, playVideo, expandPlayer, minimizePlayer } = usePlayer();
+
+  // Check URL parameter for ?v=videoId on page mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const videoId = params.get('v') || params.get('watch');
+    if (videoId) {
+      getVideoDetails(videoId).then(v => {
+        if (v) {
+          playVideo({
+            id: videoId,
+            title: v.title || 'Shared Video',
+            channelTitle: v.channelTitle || 'YouTube Creator',
+            thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+          }, true);
+          setCurrentTab('watch');
+        }
+      });
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
