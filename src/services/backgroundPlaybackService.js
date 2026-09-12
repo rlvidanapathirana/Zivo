@@ -1,6 +1,4 @@
-// Advanced Background & Screen-Off Playback Engine for Zivo
-// Enables continuous audio playback on mobile browsers (iOS Safari, Android Chrome)
-// when the screen is turned off, phone is locked, or user switches tabs.
+import { Capacitor } from '@capacitor/core';
 
 // 1-second silent stereo WAV base64 data URI (valid audio track that keeps audio pipeline active)
 const SILENT_AUDIO_URI = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
@@ -14,6 +12,7 @@ class BackgroundPlaybackEngine {
     this.playerCallbacks = null;
     this.keepScreenAwake = false;
     this.screenOffPlayback = true;
+    this.isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform();
 
     this.initAudioKeepAlive();
     this.setupVisibilityListener();

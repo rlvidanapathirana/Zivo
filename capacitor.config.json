@@ -1,0 +1,13 @@
+{
+  "appId": "com.lakshan.zivo",
+  "appName": "Zivo",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}
