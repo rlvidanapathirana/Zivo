@@ -23,7 +23,7 @@ function ZivoApp() {
 
   const { currentVideo, isMiniPlayer, playVideo, expandPlayer, minimizePlayer } = usePlayer();
 
-  // Check URL parameter for ?v=videoId on page mount
+  // Check URL parameter for ?v=videoId on page mount & setup global Zivo link clipboard handler
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const videoId = params.get('v') || params.get('watch');
@@ -40,6 +40,20 @@ function ZivoApp() {
         }
       });
     }
+
+    // Intercept any YouTube link copied to clipboard and convert to Zivo URL format
+    const handleGlobalCopy = (e) => {
+      const selectedText = window.getSelection()?.toString() || '';
+      const ytMatch = selectedText.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|\/v\/|\/embed\/)([a-zA-Z0-9_-]{11})/);
+      if (ytMatch && ytMatch[1]) {
+        const zivoUrl = `${window.location.origin}${window.location.pathname}?v=${ytMatch[1]}`;
+        e.clipboardData?.setData('text/plain', zivoUrl);
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('copy', handleGlobalCopy);
+    return () => window.removeEventListener('copy', handleGlobalCopy);
   }, []);
 
   useEffect(() => {

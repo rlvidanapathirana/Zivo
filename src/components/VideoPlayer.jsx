@@ -225,51 +225,65 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
       >
       {/* Top Floating Shields, PiP & Status Overlay (Auto-Hiding) */}
       {!isMini && (
-        <div className={`absolute top-3 right-3 z-40 flex items-center gap-2 transition-opacity duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          {/* Picture in Picture Button */}
-          <button
-            onClick={handleTogglePiP}
-            title="Picture-in-Picture Floating Mode"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md text-white/90 hover:bg-black/90 border border-white/20 transition-all shadow-md active:scale-95"
-          >
-            <PictureInPicture2 size={14} className="text-purple-400" />
-            <span className="hidden sm:inline">PiP Mode</span>
-          </button>
+        <>
+          <div className={`absolute top-3 right-3 z-40 flex items-center gap-2 transition-opacity duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            {/* Picture in Picture Button */}
+            <button
+              onClick={handleTogglePiP}
+              title="Picture-in-Picture Floating Mode"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md text-white/90 hover:bg-black/90 border border-white/20 transition-all shadow-md active:scale-95"
+            >
+              <PictureInPicture2 size={14} className="text-purple-400" />
+              <span className="hidden sm:inline">PiP Mode</span>
+            </button>
 
-          {/* Background Audio Mode Quick Toggle */}
-          <button
-            onClick={toggleAudioMode}
-            title="Toggle Screen-Off Background Audio Mode"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md transition-all shadow-md ${
-              audioOnlyMode
-                ? 'bg-purple-600 text-white shadow-purple-600/50 ring-2 ring-purple-400'
-                : 'bg-black/70 text-white/90 hover:bg-black/90 border border-white/20'
-            }`}
-          >
-            <Headphones size={13} />
-            <span>{audioOnlyMode ? 'Audio Mode' : 'Screen-Off Mode'}</span>
-          </button>
+            {/* Background Audio Mode Quick Toggle */}
+            <button
+              onClick={toggleAudioMode}
+              title="Toggle Screen-Off Background Audio Mode"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md transition-all shadow-md ${
+                audioOnlyMode
+                  ? 'bg-purple-600 text-white shadow-purple-600/50 ring-2 ring-purple-400'
+                  : 'bg-black/70 text-white/90 hover:bg-black/90 border border-white/20'
+              }`}
+            >
+              <Headphones size={13} />
+              <span>{audioOnlyMode ? 'Audio Mode' : 'Screen-Off Mode'}</span>
+            </button>
 
-          {/* Copy Zivo Custom Share Link Pill Button */}
-          <button
-            onClick={handleCopyZivoLink}
-            title="Copy Custom Zivo Video Link"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md text-white/90 hover:bg-black/90 border border-white/20 transition-all shadow-md active:scale-95"
-          >
-            {copiedZivoLink ? <Check size={14} className="text-emerald-400" /> : <Share2 size={14} className="text-purple-400" />}
-            <span className="hidden sm:inline">{copiedZivoLink ? 'Link Copied!' : 'Share Zivo Link'}</span>
-          </button>
+            {/* Copy Zivo Custom Share Link Pill Button */}
+            <button
+              onClick={handleCopyZivoLink}
+              title="Copy Custom Zivo Video Link"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-purple-600/90 backdrop-blur-md text-white hover:bg-purple-500 border border-purple-400/40 transition-all shadow-md active:scale-95"
+            >
+              {copiedZivoLink ? <Check size={14} className="text-emerald-300" /> : <Share2 size={14} className="text-white" />}
+              <span>{copiedZivoLink ? 'Link Copied!' : 'Copy Zivo Link'}</span>
+            </button>
 
-          {/* Shield Mini Indicator */}
-          <button
-            onClick={openModal}
-            title="Protected by Zivo Ad Shield"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-black/70 backdrop-blur-md text-emerald-400 border border-emerald-500/30 text-xs font-semibold hover:bg-black/90 transition-colors shadow-md"
-          >
-            <ShieldCheck size={14} className="text-emerald-400" />
-            <span className="text-[10px] text-white">Shield Active</span>
-          </button>
-        </div>
+            {/* Shield Mini Indicator */}
+            <button
+              onClick={openModal}
+              title="Protected by Zivo Ad Shield"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-black/70 backdrop-blur-md text-emerald-400 border border-emerald-500/30 text-xs font-semibold hover:bg-black/90 transition-colors shadow-md"
+            >
+              <ShieldCheck size={14} className="text-emerald-400" />
+              <span className="text-[10px] text-white">Shield Active</span>
+            </button>
+          </div>
+
+          {/* Bottom-Left Dedicated Zivo Share Button Overlay (Over YouTube iframe link icon position) */}
+          <div className={`absolute bottom-12 left-3 z-40 transition-opacity duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <button
+              onClick={handleCopyZivoLink}
+              title="Copy Zivo Video Link (Site URL)"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold bg-black/80 text-purple-300 hover:text-white hover:bg-purple-600 backdrop-blur-md shadow-xl border border-purple-500/40 transition-all active:scale-95"
+            >
+              {copiedZivoLink ? <Check size={14} className="text-emerald-400" /> : <Share2 size={14} className="text-purple-400 hover:text-white" />}
+              <span>{copiedZivoLink ? 'Zivo Link Copied!' : '🔗 Copy Zivo Site Link'}</span>
+            </button>
+          </div>
+        </>
       )}
 
       {/* Ad Blocked Notification Toast */}

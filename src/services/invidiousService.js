@@ -136,12 +136,12 @@ export async function getVideoStreams(videoId) {
   return fallbackResult;
 }
 
-export async function searchVideos(query) {
+export async function searchVideos(query, forceFresh = false) {
   if (!query || !query.trim()) return [];
   const q = query.trim();
   const cacheKey = `search:${q.toLowerCase()}`;
   
-  if (cache.has(cacheKey)) {
+  if (!forceFresh && cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
 
@@ -183,7 +183,7 @@ export async function searchVideos(query) {
 
   try {
     const results = await Promise.any(promises);
-    cache.set(cacheKey, results);
+    if (!forceFresh) cache.set(cacheKey, results);
     return results;
   } catch (err) {}
 
@@ -195,26 +195,46 @@ export async function searchVideos(query) {
   );
   
   const result = filtered.length > 0 ? normalizeVideoList(filtered) : normalizeVideoList(CURATED_CATALOG['All']);
-  cache.set(cacheKey, result);
+  if (!forceFresh) cache.set(cacheKey, result);
   return result;
 }
 
 export async function getTrendingVideos(region = 'LK', category = 'All') {
-  // 1. Dynamic live YouTube queries for category or fresh home feed
+  // Dynamic live YouTube search queries that change randomly on every page load
   const categoryQueries = {
-    'All': ['Popular Trending Sinhala Music Songs 2026', 'Viral YouTube Videos 2026', 'Trending Gaming Tech News Sri Lanka 2026'],
-    'Music': ['Trending Sinhala English Music Songs 2026', 'Popular Sri Lankan Music Videos 2026'],
-    'Gaming': ['Trending Gaming Gameplay Trailer 2026', 'Popular Esports Gaming Highlights 2026'],
-    'Tech & Science': ['Latest Tech Science Review Gadgets 2026', 'New Smartphone Technology 2026'],
-    'News': ['Sri Lanka News Headlines Today 2026', 'Global Breaking News Today 2026'],
-    'Movies & Trailers': ['Official Movie Trailers 2026', 'New Cinema Teasers 2026']
+    'All': [
+      'Trending Sinhala Music Songs 2026', 'Popular Sri Lankan Music 2026', 'Viral YouTube Videos 2026', 
+      'Trending Gaming Tech News 2026', 'Top Hit Music Videos 2026', 'Lofi Sinhala Beats 2026',
+      'Latest Technology Gadgets Review', 'Official Cinema Movie Trailers 2026'
+    ],
+    'Music': [
+      'Trending Sinhala English Music Songs 2026', 'Popular Sri Lankan Music Videos 2026',
+      'Top Global Hits 2026', 'Live Acoustic Sinhala Songs'
+    ],
+    'Gaming': [
+      'Trending Gaming Gameplay Trailer 2026', 'Popular Esports Gaming Highlights 2026',
+      'GTA VI Gameplay Trailer', 'Minecraft 1.21 Tricky Trials'
+    ],
+    'Tech & Science': [
+      'Latest Tech Science Review Gadgets 2026', 'New Smartphone Technology 2026',
+      'Apple Vision Pro Review', 'Tesla AI Robotics 2026'
+    ],
+    'News': [
+      'Sri Lanka News Headlines Today 2026', 'Global Breaking News Today 2026',
+      'BBC News Live Stream', 'Al Jazeera Live World Coverage'
+    ],
+    'Movies & Trailers': [
+      'Official Movie Trailers 2026', 'New Cinema Teasers 2026',
+      'Marvel Studio Teasers', 'Dune Part 2 Trailer'
+    ]
   };
 
   const queries = categoryQueries[category] || categoryQueries['All'];
-  const randomQuery = queries[Math.floor(Math.random() * queries.length)];
+  // Pick 2 random queries to combine for max variety
+  const q1 = queries[Math.floor(Math.random() * queries.length)];
 
-  // Fetch dynamic live results for query
-  const liveResults = await searchVideos(randomQuery);
+  // Fetch dynamic fresh live results bypassing static cache
+  const liveResults = await searchVideos(q1, true);
   if (liveResults && liveResults.length > 0) {
     return shuffleArray([...liveResults]);
   }
@@ -245,7 +265,7 @@ export async function getTrendingVideos(region = 'LK', category = 'All') {
     return shuffleArray([...results]);
   } catch (e) {}
 
-  // 3. Fallback to shuffled curated catalog so videos NEVER stay static
+  // 3. Fallback to dynamically shuffled curated catalog so videos NEVER stay static
   const fallbackCategory = CURATED_CATALOG[category] || CURATED_CATALOG['All'];
   return shuffleArray(normalizeVideoList(fallbackCategory));
 }
