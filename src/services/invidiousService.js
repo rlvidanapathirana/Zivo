@@ -200,26 +200,23 @@ export async function searchVideos(query) {
 }
 
 export async function getTrendingVideos(region = 'LK', category = 'All') {
-  const cacheKey = `trending:${region}:${category}`;
-  if (cache.has(cacheKey)) {
-    return cache.get(cacheKey);
-  }
+  // 1. Dynamic live YouTube queries for category or fresh home feed
+  const categoryQueries = {
+    'All': ['Popular Trending Sinhala Music Songs 2026', 'Viral YouTube Videos 2026', 'Trending Gaming Tech News Sri Lanka 2026'],
+    'Music': ['Trending Sinhala English Music Songs 2026', 'Popular Sri Lankan Music Videos 2026'],
+    'Gaming': ['Trending Gaming Gameplay Trailer 2026', 'Popular Esports Gaming Highlights 2026'],
+    'Tech & Science': ['Latest Tech Science Review Gadgets 2026', 'New Smartphone Technology 2026'],
+    'News': ['Sri Lanka News Headlines Today 2026', 'Global Breaking News Today 2026'],
+    'Movies & Trailers': ['Official Movie Trailers 2026', 'New Cinema Teasers 2026']
+  };
 
-  // 1. Fetch live YouTube results for specified category
-  if (category && category !== 'All') {
-    const categoryQueries = {
-      'Music': 'Trending Sinhala English Music Songs 2026',
-      'Gaming': 'Trending Gaming Gameplay 2026',
-      'Tech & Science': 'Latest Tech Science Review Gadgets 2026',
-      'News': 'Sri Lanka News Headlines Today 2026',
-      'Movies & Trailers': 'Official Movie Trailers 2026'
-    };
-    const searchQuery = categoryQueries[category] || `${category} trending 2026`;
-    const categoryResults = await searchVideos(searchQuery);
-    if (categoryResults.length > 0) {
-      cache.set(cacheKey, categoryResults);
-      return categoryResults;
-    }
+  const queries = categoryQueries[category] || categoryQueries['All'];
+  const randomQuery = queries[Math.floor(Math.random() * queries.length)];
+
+  // Fetch dynamic live results for query
+  const liveResults = await searchVideos(randomQuery);
+  if (liveResults && liveResults.length > 0) {
+    return shuffleArray([...liveResults]);
   }
 
   // 2. Race parallel trending endpoints
@@ -245,22 +242,20 @@ export async function getTrendingVideos(region = 'LK', category = 'All') {
 
   try {
     const results = await Promise.any(promises);
-    cache.set(cacheKey, results);
-    return results;
+    return shuffleArray([...results]);
   } catch (e) {}
 
-  // 3. Dynamic search fallback
-  const dynamicTrending = await searchVideos('Trending Sinhala Songs Popular Music Videos 2026');
-  if (dynamicTrending.length > 0) {
-    cache.set(cacheKey, dynamicTrending);
-    return dynamicTrending;
-  }
-
-  // 4. Curated Failsafe Fallback
+  // 3. Fallback to shuffled curated catalog so videos NEVER stay static
   const fallbackCategory = CURATED_CATALOG[category] || CURATED_CATALOG['All'];
-  const fallbackNormalized = normalizeVideoList(fallbackCategory);
-  cache.set(cacheKey, fallbackNormalized);
-  return fallbackNormalized;
+  return shuffleArray(normalizeVideoList(fallbackCategory));
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }
 
 export async function getSearchSuggestions(query) {

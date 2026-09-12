@@ -5,7 +5,7 @@ import { getVideoStreams } from '../services/invidiousService';
 import { backgroundEngine } from '../services/backgroundPlaybackService';
 import { useBraveShield } from '../context/BraveShieldContext';
 import { usePlayer } from '../context/PlayerContext';
-import { Zap, ShieldCheck, Headphones, Moon, Radio, PictureInPicture2 } from 'lucide-react';
+import { Zap, ShieldCheck, Headphones, Moon, Radio, PictureInPicture2, Share2, Check } from 'lucide-react';
 
 export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, isMini }) {
   const { prefs, trackEvent, openModal } = useBraveShield();
@@ -15,6 +15,14 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
   const [adBlockedToast, setAdBlockedToast] = useState(false);
   const [directStream, setDirectStream] = useState(null);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [copiedZivoLink, setCopiedZivoLink] = useState(false);
+
+  const handleCopyZivoLink = () => {
+    const customUrl = `${window.location.origin}${window.location.pathname}?v=${videoId}`;
+    navigator.clipboard.writeText(customUrl);
+    setCopiedZivoLink(true);
+    setTimeout(() => setCopiedZivoLink(false), 2500);
+  };
 
   const videoRef = useRef(null);
   const iframeRef = useRef(null);
@@ -57,10 +65,20 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
   const [isPiPWindowActive, setIsPiPWindowActive] = useState(false);
   const containerRef = useRef(null);
 
-  // Revolutionary Multi-Layer Native OS Picture-in-Picture Engine (Zero Black Screen, Zero Error 153)
+  // Revolutionary Multi-Layer Native OS Picture-in-Picture Engine (Zero Error 153)
   const handleTogglePiP = async () => {
     try {
-      // 1. Priority 1: Document Picture-in-Picture API (Chrome/Edge OS floating window outside tab)
+      // 1. Priority 1: Native HTML5 Video PiP (100% OS Level Floating Window - Zero Error 153)
+      if (videoRef.current && document.pictureInPictureEnabled) {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          await videoRef.current.requestPictureInPicture();
+        }
+        return;
+      }
+
+      // 2. Priority 2: Document Picture-in-Picture API with Open-Source Player (Bypasses YouTube Error 153)
       if ('documentPictureInPicture' in window) {
         if (window.documentPictureInPicture.window) {
           window.documentPictureInPicture.window.close();
@@ -83,8 +101,8 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
         pipWindow.document.body.style.justifyContent = 'center';
         pipWindow.document.body.style.overflow = 'hidden';
 
-        const cleanOrigin = window.location.origin || 'https://rlvidanapathirana.github.io';
         const streamSrc = directStream?.videoUrl;
+        const invidiousUrl = directStream?.invidiousEmbedUrl || `https://inv.tux.pizza/embed/${videoId}?autoplay=1`;
 
         if (streamSrc) {
           const v = pipWindow.document.createElement('video');
@@ -98,7 +116,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
           pipWindow.document.body.appendChild(v);
         } else {
           const iframe = pipWindow.document.createElement('iframe');
-          iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&iv_load_policy=3&controls=1&origin=${encodeURIComponent(cleanOrigin)}`;
+          iframe.src = invidiousUrl;
           iframe.style.width = '100vw';
           iframe.style.height = '100vh';
           iframe.style.border = 'none';
@@ -113,18 +131,8 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
         return;
       }
 
-      // 2. Priority 2: Native HTML5 Video PiP
-      if (videoRef.current && document.pictureInPictureEnabled) {
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
-        } else {
-          await videoRef.current.requestPictureInPicture();
-        }
-        return;
-      }
-
       // 3. Priority 3: Standalone OS Pop-Out Window
-      const popSrc = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`;
+      const popSrc = directStream?.invidiousEmbedUrl || `https://inv.tux.pizza/embed/${videoId}?autoplay=1`;
       window.open(
         popSrc,
         'ZivoFloatingPiP',
@@ -240,6 +248,16 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
           >
             <Headphones size={13} />
             <span>{audioOnlyMode ? 'Audio Mode' : 'Screen-Off Mode'}</span>
+          </button>
+
+          {/* Copy Zivo Custom Share Link Pill Button */}
+          <button
+            onClick={handleCopyZivoLink}
+            title="Copy Custom Zivo Video Link"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-black/70 backdrop-blur-md text-white/90 hover:bg-black/90 border border-white/20 transition-all shadow-md active:scale-95"
+          >
+            {copiedZivoLink ? <Check size={14} className="text-emerald-400" /> : <Share2 size={14} className="text-purple-400" />}
+            <span className="hidden sm:inline">{copiedZivoLink ? 'Link Copied!' : 'Share Zivo Link'}</span>
           </button>
 
           {/* Shield Mini Indicator */}
