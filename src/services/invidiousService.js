@@ -178,7 +178,7 @@ export async function searchVideos(query) {
     }
   } catch (err) {}
 
-  return getFallbackSearch(query);
+  return [];
 }
 
 export async function getTrendingVideos(region = 'LK', category = 'All') {
@@ -187,64 +187,32 @@ export async function getTrendingVideos(region = 'LK', category = 'All') {
     return cache.get(cacheKey);
   }
 
-  // 1. Try YouTube InnerTube Trending API
-  try {
-    const res = await fetch('https://www.youtube.com/youtubei/v1/browse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        context: {
-          client: {
-            clientName: 'WEB',
-            clientVersion: '2.20240101.00.00',
-            hl: 'en',
-            gl: region
-          }
-        },
-        browseId: 'FEtrending'
-      })
-    });
-
-    if (res.ok) {
-      const json = await res.json();
-      const tabs = json.contents?.twoColumnBrowseResultsRenderer?.tabs || [];
-      const trendingTab = tabs[0]?.tabRenderer?.content?.sectionListRenderer?.contents || [];
-      
-      const parsed = [];
-      for (const sec of trendingTab) {
-        const items = sec.itemSectionRenderer?.contents?.[0]?.shelfRenderer?.content?.expandedShelfContentsRenderer?.items || [];
-        for (const item of items) {
-          if (item.videoRenderer?.videoId) {
-            const v = item.videoRenderer;
-            parsed.push({
-              id: v.videoId,
-              title: v.title?.runs?.[0]?.text || 'Trending Video',
-              channelTitle: v.ownerText?.runs?.[0]?.text || 'Creator',
-              channelId: v.ownerText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId || '',
-              publishedText: v.publishedTimeText?.simpleText || 'Recently',
-              viewCountFormatted: v.viewCountText?.simpleText || 'Views',
-              duration: v.lengthText?.simpleText || '',
-              thumbnail: `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`
-            });
-          }
-        }
-      }
-
-      if (parsed.length > 0) {
-        cache.set(cacheKey, parsed);
-        return parsed;
-      }
+  // 1. If category is specified, fetch live YouTube results for that category directly
+  if (category && category !== 'All') {
+    const categoryQueries = {
+      'Music': 'Trending Sinhala English Music Songs 2026',
+      'Gaming': 'Trending Gaming Gameplay 2026',
+      'Tech & Science': 'Latest Tech Science Review Gadgets 2026',
+      'News': 'Sri Lanka News Headlines Today 2026',
+      'Movies & Trailers': 'Official Movie Trailers 2026'
+    };
+    const searchQuery = categoryQueries[category] || `${category} trending 2026`;
+    const categoryResults = await searchVideos(searchQuery);
+    if (categoryResults.length > 0) {
+      cache.set(cacheKey, categoryResults);
+      return categoryResults;
     }
-  } catch (err) {}
+  }
 
-  // 2. Failover instances
-  const endpoints = [
-    `https://inv.tux.pizza/api/v1/trending?region=${region}`,
-    `https://invidious.nerdvpn.de/api/v1/trending?region=${region}`,
-    `https://pipedapi.kavin.rocks/trending?region=${region}`
+  // 2. Try Invidious & Piped Trending endpoints (Global & Region)
+  const trendingEndpoints = [
+    `https://inv.tux.pizza/api/v1/trending`,
+    `https://invidious.nerdvpn.de/api/v1/trending`,
+    `https://pipedapi.kavin.rocks/trending?region=US`,
+    `https://api.piped.private.coffee/trending?region=US`
   ];
 
-  for (const url of endpoints) {
+  for (const url of trendingEndpoints) {
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
       if (res.ok) {
@@ -259,7 +227,14 @@ export async function getTrendingVideos(region = 'LK', category = 'All') {
     } catch (e) {}
   }
 
-  return getFallbackTrending();
+  // 3. Failover: Perform live dynamic YouTube search for popular trending content
+  const dynamicTrending = await searchVideos('Trending Sinhala Songs Popular Music Videos 2026');
+  if (dynamicTrending.length > 0) {
+    cache.set(cacheKey, dynamicTrending);
+    return dynamicTrending;
+  }
+
+  return [];
 }
 
 export async function getSearchSuggestions(query) {
@@ -296,7 +271,20 @@ export async function getVideoDetails(videoId) {
     } catch (e) {}
   }
 
-  return getFallbackVideoDetails(videoId);
+  // Dynamic fallback details
+  const recommended = await searchVideos('Recommended YouTube Songs Videos 2026');
+  return {
+    id: videoId,
+    title: 'Playing YouTube Video',
+    description: 'Ultra fast ad-free video playback on Zivo.',
+    channelId: 'youtube-official',
+    channelTitle: 'YouTube Creator',
+    channelAvatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=zivo',
+    publishedText: 'Recently',
+    viewCount: 125000,
+    recommendedVideos: recommended,
+    subCountText: 'Verified Channel'
+  };
 }
 
 export async function getVideoComments(videoId) {
@@ -343,38 +331,4 @@ function formatViews(views) {
   if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M views`;
   if (views >= 1000) return `${(views / 1000).toFixed(1)}K views`;
   return `${views} views`;
-}
-
-function getFallbackTrending() {
-  const list = [
-    { id: 'gN6LGDjbsIM', title: 'Dewaduthiyak (දේවදූතියක්) | Mihiran | New Sinhala Songs', channelTitle: 'Double Point Music', viewCount: 2500000, duration: '4:15', publishedText: '1 month ago' },
-    { id: 'YaekJ9g7aWA', title: '2026 වයිරල් සින්දු නන්ස්ටොප් | Trending Sinhala Nonstop Hits', channelTitle: 'Music Update', viewCount: 45000, duration: '45:20', publishedText: '1 week ago' },
-    { id: 'vxYTeha9d84', title: 'Best of Sunil Edirisinghe Live (සුනිල් එදිරිසිංහ ගී එකතුව)', channelTitle: 'Gee Lanka', viewCount: 1800000, duration: '1:12:00', publishedText: '6 months ago' },
-    { id: 'CTOdDQ5SpT0', title: '2000s HIT Sinhala Songs Collection', channelTitle: 'Heart of Music', viewCount: 1870000, duration: '52:10', publishedText: '2 months ago' },
-    { id: 'YykjpeuMNEk', title: 'Coldplay - Hymn For The Weekend (Official Video)', channelTitle: 'Coldplay', viewCount: 2280000000, duration: '4:21', publishedText: '8 years ago' },
-    { id: '1G4isv_Fylg', title: 'Coldplay - Paradise (Official Video)', channelTitle: 'Coldplay', viewCount: 2090000000, duration: '4:21', publishedText: '12 years ago' },
-    { id: 'jfKfPfyJRdk', title: 'Lofi Hip Hop Radio - Beats to Relax/Study to', channelTitle: 'Lofi Girl', viewCount: 890000000, duration: 'LIVE', publishedText: 'Streaming Live' }
-  ];
-  return normalizeVideoList(list);
-}
-
-function getFallbackSearch(query) {
-  const fallback = getFallbackTrending();
-  const filtered = fallback.filter(v => v.title.toLowerCase().includes(query.toLowerCase()) || v.channelTitle.toLowerCase().includes(query.toLowerCase()));
-  return filtered.length > 0 ? filtered : fallback;
-}
-
-function getFallbackVideoDetails(videoId) {
-  return {
-    id: videoId,
-    title: 'Playing YouTube Video',
-    description: 'Ultra fast ad-free video playback on Zivo.',
-    channelId: 'youtube-official',
-    channelTitle: 'YouTube Creator',
-    channelAvatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=zivo',
-    publishedText: 'Recently',
-    viewCount: 125000,
-    recommendedVideos: getFallbackTrending(),
-    subCountText: 'Verified Channel'
-  };
 }
