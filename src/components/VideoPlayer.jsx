@@ -56,7 +56,7 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
 
   const containerRef = useRef(null);
 
-  // Real Native OS Picture-in-Picture handler (Outside Browser Tab)
+  // Real Native OS Picture-in-Picture handler (Outside Browser Tab - Zero Error 153)
   const handleTogglePiP = async () => {
     try {
       // 1. Try Document Picture-in-Picture API (Chrome/Edge OS floating window outside tab)
@@ -71,35 +71,36 @@ export default function VideoPlayer({ videoId, title, channelTitle, thumbnail, i
           height: 315
         });
 
-        // Copy styles to Document PiP Window
-        [...document.styleSheets].forEach((styleSheet) => {
-          try {
-            const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
-            const style = document.createElement('style');
-            style.textContent = cssRules;
-            pipWindow.document.head.appendChild(style);
-          } catch (e) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.type = styleSheet.type;
-            link.href = styleSheet.href;
-            pipWindow.document.head.appendChild(link);
-          }
-        });
+        pipWindow.document.title = `${title || 'Zivo Video'} — Picture-in-Picture`;
+        pipWindow.document.body.style.margin = '0';
+        pipWindow.document.body.style.backgroundColor = '#000';
+        pipWindow.document.body.style.display = 'flex';
+        pipWindow.document.body.style.alignItems = 'center';
+        pipWindow.document.body.style.justifyContent = 'center';
+        pipWindow.document.body.style.overflow = 'hidden';
 
-        // Move container element into OS Picture-in-Picture window
-        const playerElement = containerRef.current;
-        if (playerElement) {
-          pipWindow.document.body.appendChild(playerElement);
-          pipWindow.document.body.style.margin = '0';
-          pipWindow.document.body.style.backgroundColor = '#000';
+        const cleanOrigin = window.location.origin || 'https://rlvidanapathirana.github.io';
 
-          pipWindow.addEventListener('pagehide', () => {
-            const hostContainer = document.getElementById(`zivo-player-host-${videoId}`);
-            if (hostContainer && playerElement) {
-              hostContainer.appendChild(playerElement);
-            }
-          });
+        // Render fresh stream element inside Document PiP window (bypasses YouTube iframe migration Error 153)
+        if (directStream?.videoUrl) {
+          const v = pipWindow.document.createElement('video');
+          v.src = directStream.videoUrl;
+          v.controls = true;
+          v.autoplay = true;
+          v.playsInline = true;
+          v.style.width = '100vw';
+          v.style.height = '100vh';
+          v.style.objectFit = 'contain';
+          pipWindow.document.body.appendChild(v);
+        } else {
+          const iframe = pipWindow.document.createElement('iframe');
+          iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(cleanOrigin)}&widget_referrer=${encodeURIComponent(cleanOrigin)}`;
+          iframe.style.width = '100vw';
+          iframe.style.height = '100vh';
+          iframe.style.border = 'none';
+          iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+          iframe.allowFullscreen = true;
+          pipWindow.document.body.appendChild(iframe);
         }
         return;
       }
